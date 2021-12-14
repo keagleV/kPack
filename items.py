@@ -1,4 +1,4 @@
-
+from math import pi
 
 
 class Item:
@@ -8,6 +8,7 @@ class Item:
 
 	def __init__ (self):
 
+		
 		# Type of the item
 		self.itemType=str()
 
@@ -34,8 +35,6 @@ class Item:
 
 		# Item rotation angle
 		self.rotAngle=0
-
-
 
 
 	def set_item_type(self,itemType):
@@ -184,7 +183,7 @@ class CircleParams:
 			This function returns the area of the object based on its 
 			parameters
 		'''
-		pass
+		return self.radius * self.radius * pi
 
 
 class SquareParams:
@@ -211,5 +210,48 @@ class SquareParams:
 		'''
 		return self.side
 
+
+	def get_area(self):
+		'''
+			This function returns the area of the object based on its 
+			parameters
+		'''
+		return (self.side)**2
+
+
+
 	
+class RtiParams:
+
+	'''
+		This class implements the right trianlge isolesce' parameters class
+	'''
+	def __init__(self):
+
+		# rti side
+		self.side=int()
+
+
+	def set_side(self,side):
+		'''
+			This function sets the side of the rti
+		'''
+		self.side=side
+
+	def get_side(self):
+
+		'''
+			This function returns the side of the rti
+		'''
+		return self.side
+
+
+	def get_area(self):
+		'''
+			This function returns the area of the object based on its 
+			parameters
+		'''
+		return ((self.side)**2)/2
+
+
 

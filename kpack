@@ -1,22 +1,12 @@
 #!/usr/bin/python3
 
 import argparse
-import items
-
-
-
-class EvolAlgoParams:
-
-	'''
-		This class implements the parameters of the evolution algorithm.
-	'''
-
-	def __init__(self,):
-
-		# Population size
-		self.populationSize=100
-
-
+from items import *
+from re import match
+from re import search
+from os import path
+from copy import deepcopy
+from kpackEA import *
 
 
 
@@ -37,10 +27,49 @@ class kPack:
 		# EA algorithm parameters
 		self.eaParams=eaParams
 
+		# Dictionary of all the objects
+		self.objects=dict()
+
+
+		# Object file statements' regexes
+		self.objFileReg = {
+		'CONTAINER_DEF':'\s*container\s*:\s*',
+
+		'OBJECT_DEF':'\s*objects\s*:\s*',
+
+		'CIRCLE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(circle)\s*:\s*r\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
+
+		'SQUARE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(square)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
+
+		'RTI_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(rti)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
+
+
+		# TODO ECLIPSe
+
+		}
+
+
 
 		# Log messages of the kPack program
 		self.logMessages = {
-		'OBJ_FILE_NOT_SPECIFIED': 'No Object File Has Been Specified'
+		'OBJ_FILE_NOT_SPECIFIED': 'No Object File Has Been Specified',
+
+		'OBJ_FILE_NOT_FOUND': 'Object File Not Found',
+
+		'OBJ_FILE_MULTI_CONTAINER_SEG_DEF': 'Multiple Definition Of Container Segment',
+
+		'OBJ_FILE_MULTI_OBJECTS_SEG_DEF': 'Multiple Definition Of Objects Segment',
+
+		'OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF': 'Multiple Definition Of Objects In Container Segment',
+
+		'OBJ_FILE_OBJECTS_SEG_NO_OBJ': 'Objects Segment Cannot Be Empty',
+
+		'OBJ_FILE_CONTAINER_SEG_NO_OBJ': 'Container Segment Cannot Be Empty',
+
+		'OBJ_FILE_NO_CONTAINER_SEG_DEF': 'Container Segment Missing',
+
+		'OBJ_FILE_NO_OBJECTS_SEG_DEF': 'Objects Segment Missing',
+
 		}
 
 
@@ -67,11 +96,280 @@ class kPack:
 
 		if args.file:
 
-			self.objFile = args.file
+			self.objFile = args.file[0]
+
+			if not path.exists(self.objFile):
+				self.log_messages(self.logMessages['OBJ_FILE_NOT_FOUND'],'ERR')
+				exit(1)
 
 		else:
 			self.log_messages(self.logMessages['OBJ_FILE_NOT_SPECIFIED'],'ERR')
 			exit(1)
+
+
+	def read_obj_file(self):
+		'''
+			This function reads the objects file and extract the objects
+		'''
+		fhandle=open(self.objFile)
+		fileLines=fhandle.readlines()
+		fhandle.close()
+
+
+		# To handle multiple definition of container segement and
+		# objects segment
+		containerDef=0
+		objectsDef=0
+
+		# To handle object definition in each segment. Container segment
+		# should handle only 1 object for the sake of this project. The 
+		# objects segement should contain at least one object.
+		containerObjCnt=0
+		objectsObjCnt=0
+
+		# Handling the segment
+		currentSegment=str()
+
+
+		# Objects code. This code will be incremented for each new
+		# object.
+		objCode=1
+
+
+		# New object
+		newItem=None
+
+		# New object Count
+		objCount=0
+
+
+		for lineNum,line in enumerate(fileLines):
+
+			line=line.strip()
+
+			# Line number starts from zero, to handle this, we increment it 
+			# to adjust it to start from one.
+			lineNum+=1
+
+			if line:
+
+				if line.startswith('#'):
+					continue
+
+
+				if match(self.objFileReg['CONTAINER_DEF'],line):
+
+					# Check for multiple definition of container segment
+					if containerDef:
+						self.log_messages(self.logMessages['OBJ_FILE_MULTI_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
+						exit(1)
+
+					# Setting the definition status to 1
+					containerDef=1
+
+					# Setting the segment
+					currentSegment='Container'
+
+
+					# Check whether the objects segment has been defined before, and if it has,
+					# does it contain at least one object or not.
+					if objectsDef and (objectsObjCnt==0):
+						self.log_messages(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
+						exit(1)
+
+					continue
+
+
+				elif match(self.objFileReg['OBJECT_DEF'],line):
+
+					# Check for multiple definition of objects segment
+					if objectsDef:
+						self.log_messages(self.logMessages['OBJ_FILE_MULTI_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
+						exit(1)
+
+					# Setting the definition status to 1
+					objectsDef=1
+
+
+					# Setting the segment
+					currentSegment='Objects'
+
+
+
+					# Check whether the objects segment has been defined before, and if it has,
+					# does it contain at least one object or not.
+					if containerDef and (containerObjCnt==0):
+						self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
+						exit(1)
+
+					continue
+
+
+				elif match(self.objFileReg['CIRCLE_DEF'],line):
+
+					circleRadius = float( search('\s*r\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					circleValue= float( search('\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					circleWeight= float( search('\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+
+
+					# The portion that declares the object count
+					cntPart= search('\s*(([1-9][0-9]*)\s*,)?\s*(circle)\s*',line).group(0)
+						
+					objCount=1
+
+					if ',' in cntPart:
+						objCount= int (cntPart.split(',')[0].strip())
+
+				
+					# Create the object 
+					newItem=Item()
+					newItemParams=CircleParams()
+					newItemParams.set_radius(circleRadius)
+
+
+					newItem.set_item_type('circle')
+					newItem.set_item_value(circleValue)
+					newItem.set_item_weight(circleWeight)
+
+					newItem.set_item_param(newItemParams)
+					newItem.set_item_area()
+
+
+				elif match(self.objFileReg['SQUARE_DEF'],line):
+
+					squareSide = float( search('\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					squareValue= float( search('\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					squareWeight= float( search('\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+
+
+					# The portion that declares the object count
+					cntPart= search('\s*(([1-9][0-9]*)\s*,)?\s*(square)\s*',line).group(0)
+						
+					objCount=1
+
+					if ',' in cntPart:
+						objCount= int (cntPart.split(',')[0].strip())
+
+				
+					# Create the object 
+					newItem=Item()
+					newItemParams=SquareParams()
+					newItemParams.set_side(squareSide)
+
+
+					newItem.set_item_type('sqaure')
+					newItem.set_item_value(squareValue)
+					newItem.set_item_weight(squareWeight)
+
+					newItem.set_item_param(newItemParams)
+					newItem.set_item_area()
+
+				elif match(self.objFileReg['RTI_DEF'],line):
+
+					rtiSide = float( search('\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					rtiValue= float( search('\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					rtiWeight= float( search('\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+
+
+					# The portion that declares the object count
+					cntPart= search('\s*(([1-9][0-9]*)\s*,)?\s*(rti)\s*',line).group(0)
+						
+					objCount=1
+
+					if ',' in cntPart:
+						objCount= int (cntPart.split(',')[0].strip())
+
+				
+					# Create the object 
+					newItem=Item()
+					newItemParams=RtiParams()
+					newItemParams.set_side(rtiSide)
+
+
+					newItem.set_item_type('rti')
+					newItem.set_item_value(rtiValue)
+					newItem.set_item_weight(rtiWeight)
+
+					newItem.set_item_param(newItemParams)
+					newItem.set_item_area()
+
+
+
+				# Adding the objects
+
+				# Check the segment declaration
+
+				if currentSegment=='Container':
+
+					if containerObjCnt!=0:
+						self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
+						exit(1)
+
+					# Check for the object count
+					if objCount!=1:
+						self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
+						exit(1)
+
+				
+					# Adding the new item to the dictionary of the 
+					# objects. However, since this is container, it would
+					# be added as the first object with code equals 0.
+
+					self.objects[0]=newItem
+
+					# Set the object count to 1 for the container segment
+					containerObjCnt=1
+
+				else:
+
+					for i in range(objCount):
+
+
+						# Adding the object to the list
+						self.objects[objCode]=deepcopy(newItem)
+
+						# Incrementing the object code
+						objCode+=1
+
+
+						# Incrementing the objects segment's object count
+						objectsObjCnt+=1
+
+
+		
+		if 	containerDef==0:
+			self.log_messages(self.logMessages['OBJ_FILE_NO_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
+			exit(1)
+
+		if 	objectsDef==0:
+			self.log_messages(self.logMessages['OBJ_FILE_NO_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
+			exit(1)
+
+		if containerObjCnt==0:
+			self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
+			exit(1)
+
+		if objectsObjCnt==0:
+			self.log_messages(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
+			exit(1)
+
+
+
+
+
+			
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -79,7 +377,11 @@ eaParams=EvolAlgoParams()
 
 obj=kPack(eaParams)
 obj.read_arguement_params()
+obj.read_obj_file()
 
+
+# for k,v in obj.objects.items():
+# 	print(k,v.get_item_param().get_radius())
 
 
 
