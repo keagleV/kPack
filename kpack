@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+
+import argparse
+import items
+
+
+
+class EvolAlgoParams:
+
+	'''
+		This class implements the parameters of the evolution algorithm.
+	'''
+
+	def __init__(self,):
+
+		# Population size
+		self.populationSize=100
+
+
+
+
+
+
+
+
+class kPack:
+
+	'''
+		This class implements the kPack program
+	'''
+
+	def __init__(self,eaParams):
+
+		# Object file to read the details of the objects
+		self.objFile=str()
+
+		# EA algorithm parameters
+		self.eaParams=eaParams
+
+
+		# Log messages of the kPack program
+		self.logMessages = {
+		'OBJ_FILE_NOT_SPECIFIED': 'No Object File Has Been Specified'
+		}
+
+
+	def log_messages(self,message,status):
+		'''
+			This function will log the report messages alongside their
+			severity to the console.
+		'''
+
+		print("[{0}] {1}".format(status,message))
+
+
+	def read_arguement_params(self):
+		'''
+			This function implements the command line argument reader
+		'''
+
+		parser = argparse.ArgumentParser(description='kPack Help')
+
+		parser.add_argument('-f','--file',  type=str, nargs=1,help='Specify A Report File Name')
+
+
+		args = parser.parse_args()
+
+		if args.file:
+
+			self.objFile = args.file
+
+		else:
+			self.log_messages(self.logMessages['OBJ_FILE_NOT_SPECIFIED'],'ERR')
+			exit(1)
+
+
+
+eaParams=EvolAlgoParams()
+
+obj=kPack(eaParams)
+obj.read_arguement_params()
+
+
+
+
+
+
+
