@@ -1,14 +1,15 @@
 #!/usr/bin/python3
 
 import argparse
-from items import *
 from re import match
 from re import search
 from os import path
 from copy import deepcopy
-from kpackEA import *
 
-
+from kpackea import *
+from shapegeo import *
+from logger import *
+from items import *
 
 
 
@@ -19,7 +20,7 @@ class kPack:
 		This class implements the kPack program
 	'''
 
-	def __init__(self,eaParams):
+	def __init__(self,eaParams,eaAlgo,shapegeo,logger):
 
 		# Object file to read the details of the objects
 		self.objFile=str()
@@ -29,6 +30,16 @@ class kPack:
 
 		# Dictionary of all the objects
 		self.objects=dict()
+
+
+		# Shape Geometery library handler
+		self.shgeo=shapegeo
+
+		# Logger library handler
+		self.logger=logger
+
+		# EA algorithm handler
+		self.eaAlgo=eaAlgo
 
 
 		# Object file statements' regexes
@@ -44,7 +55,7 @@ class kPack:
 		'RTI_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(rti)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
 
 
-		# TODO ECLIPSe
+		# TODO ELLIPSE
 
 		}
 
@@ -73,14 +84,6 @@ class kPack:
 		}
 
 
-	def log_messages(self,message,status):
-		'''
-			This function will log the report messages alongside their
-			severity to the console.
-		'''
-
-		print("[{0}] {1}".format(status,message))
-
 
 	def read_arguement_params(self):
 		'''
@@ -99,11 +102,11 @@ class kPack:
 			self.objFile = args.file[0]
 
 			if not path.exists(self.objFile):
-				self.log_messages(self.logMessages['OBJ_FILE_NOT_FOUND'],'ERR')
+				self.logger.log_message(self.logMessages['OBJ_FILE_NOT_FOUND'],'ERR')
 				exit(1)
 
 		else:
-			self.log_messages(self.logMessages['OBJ_FILE_NOT_SPECIFIED'],'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_NOT_SPECIFIED'],'ERR')
 			exit(1)
 
 
@@ -161,7 +164,7 @@ class kPack:
 
 					# Check for multiple definition of container segment
 					if containerDef:
-						self.log_messages(self.logMessages['OBJ_FILE_MULTI_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_MULTI_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
 						exit(1)
 
 					# Setting the definition status to 1
@@ -174,7 +177,7 @@ class kPack:
 					# Check whether the objects segment has been defined before, and if it has,
 					# does it contain at least one object or not.
 					if objectsDef and (objectsObjCnt==0):
-						self.log_messages(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
 						exit(1)
 
 					continue
@@ -184,7 +187,7 @@ class kPack:
 
 					# Check for multiple definition of objects segment
 					if objectsDef:
-						self.log_messages(self.logMessages['OBJ_FILE_MULTI_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_MULTI_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
 						exit(1)
 
 					# Setting the definition status to 1
@@ -199,7 +202,7 @@ class kPack:
 					# Check whether the objects segment has been defined before, and if it has,
 					# does it contain at least one object or not.
 					if containerDef and (containerObjCnt==0):
-						self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
 						exit(1)
 
 					continue
@@ -302,12 +305,12 @@ class kPack:
 				if currentSegment=='Container':
 
 					if containerObjCnt!=0:
-						self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
 						exit(1)
 
 					# Check for the object count
 					if objCount!=1:
-						self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
 						exit(1)
 
 				
@@ -338,23 +341,36 @@ class kPack:
 
 		
 		if 	containerDef==0:
-			self.log_messages(self.logMessages['OBJ_FILE_NO_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_NO_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
 			exit(1)
 
 		if 	objectsDef==0:
-			self.log_messages(self.logMessages['OBJ_FILE_NO_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_NO_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
 			exit(1)
 
 		if containerObjCnt==0:
-			self.log_messages(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
 			exit(1)
 
 		if objectsObjCnt==0:
-			self.log_messages(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
 			exit(1)
 
 
 
+
+	def run_ea_computation(self):
+		'''
+			This function runs the EA algorithm on the objects
+		'''
+
+		# Filter the objects
+		self.objects=self.eaAlgo.initial_filtering(self.objects)
+
+		initialPopulation=self.eaAlgo.generate_initial_population(self.objects)
+
+
+		
 
 
 			
@@ -371,18 +387,25 @@ class kPack:
 
 
 
-
-
+logger=Logger()
 eaParams=EvolAlgoParams()
+shapegeo=ShapeGeo()
+eaAlgo=KpackEA(logger,eaParams,shapegeo)
 
-obj=kPack(eaParams)
+
+
+obj=kPack(eaParams,eaAlgo,shapegeo,logger)
 obj.read_arguement_params()
 obj.read_obj_file()
 
 
 # for k,v in obj.objects.items():
-# 	print(k,v.get_item_param().get_radius())
+# 	print(k,v)
+obj.run_ea_computation()
 
+
+# for k,v in obj.objects.items():
+# 	print(k,v)
 
 
 

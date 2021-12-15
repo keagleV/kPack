@@ -7,14 +7,14 @@ container:
 
 
 
-circle: r= 12 , v=12,w=13
+circle: r= 12 , v=12,w=1000
 
 
 objects:
 
-#square: a= 12 , v=12,w=13
-
-3,rti: a= 12 , v=12,w=13
+3,rti: a= 12 , v=12,w=3
+3,rti: a= 12 , v=12,w=8
+rti: a= 12 , v=12,w=2
 
 
 
