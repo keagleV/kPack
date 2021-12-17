@@ -50,11 +50,11 @@ class kPack:
 
 		'OBJECT_DEF':'\s*objects\s*:\s*',
 
-		'CIRCLE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(circle)\s*:\s*r\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
+		'CIRCLE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(circle)\s*:\s*r\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
 
-		'SQUARE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(square)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
+		'SQUARE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(square)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
 
-		'RTI_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(rti)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v=\s*([+-]?([0-9]*[.])?[0-9]+)\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
+		'RTI_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(rti)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
 
 
 		# TODO ELLIPSE
@@ -212,6 +212,7 @@ class kPack:
 
 				elif match(self.objFileReg['CIRCLE_DEF'],line):
 
+
 					circleRadius = float( search('\s*r\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
 					circleValue= float( search('\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
 					circleWeight= float( search('\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
@@ -307,11 +308,13 @@ class kPack:
 				if currentSegment=='Container':
 
 					if containerObjCnt!=0:
+						print("UES")
 						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
 						exit(1)
 
 					# Check for the object count
 					if objCount!=1:
+						print("YES")
 						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
 						exit(1)
 
@@ -389,15 +392,12 @@ class kPack:
 		# Generating initial population
 		population=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
 
-		# print(population[0])
-		# exit(0)
-		self.draw_solution(containerObj,population)
-
-		exit(0)
+		
+		
+		self.logger.log_message("Start Running The EA Algorithm For 300 Cycles","INF")
 
 		for i in range(300):
 
-			print(i)
 			self.eaAlgo.calculate_fitness_value(population,self.objects)
 
 
@@ -417,27 +417,40 @@ class kPack:
 		fittestSolutions=self.eaAlgo.get_fittest_solution(population)
 
 
+		if len(fittestSolutions)>1:
+
+			self.logger.log_message("Multiple Solutions Have Been Found ({0} Solutions)".format(len(fittestSolutions)),"INF")
+
+
 
 		return containerObj,fittestSolutions
 
 
 	def draw_solution(self,containerObj,solutions):
 
+		'''
+			This function draws the solutions
+		'''
 
-		x, y = containerObj.exterior.xy
 
-		plt.plot(x,y,c="black")
 
-		solution=solutions[0]
+		for solution in solutions:
 
-		for shape in solution[0]:
 
-			x, y = shape[1].exterior.xy
+			x, y = containerObj.exterior.xy
 
 			plt.plot(x,y,c="black")
 
-		plt.show()
+			for shape in solution[0]:
 
+				x, y = shape[1].exterior.xy
+
+				plt.plot(x,y,c="black")
+
+			plt.show()
+
+
+		
 
 
 

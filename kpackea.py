@@ -17,14 +17,13 @@ class EvolAlgoParams:
 	def __init__(self):
 
 		# Population size
-		self.populationSize=40
+		self.populationSize=10
 
 		# Number of tries to select an object
-		self.objectSelectionTries=300
-		self.objectAdditionTries=300
+		self.objectAdditionTries=100
 
 		# Number of tries to set up the initial population
-		self.initPopSetupTries=300
+		self.initPopSetupTries=100
 
 		# Mating probability
 		self.mateProb=0.7
@@ -127,7 +126,6 @@ class KpackEA:
 		initialPopulation=[]
 
 		for i in range(self.eaParams.populationSize):
-			print(i)
 			initialPopulation.append(self.pack_objects(objects,containerObj,containerObjParams))
 
 
@@ -175,7 +173,6 @@ class KpackEA:
 
 		for i in range(self.eaParams.initPopSetupTries):
 
-
 			# Check for the early termination:
 			# 1. The container is full
 			# 2. No remaining objects
@@ -197,6 +194,12 @@ class KpackEA:
 
 			# Adding the newObject
 			newObject = self.check_add_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
+
+
+			# shapes=[ sh[1] for sh in objectsInContainer]
+			# shapes.append(containerObj)
+
+			# self.draw(shapes)
 
 			if newObject:
 
@@ -273,8 +276,6 @@ class KpackEA:
 		# Return the pack of objects alongside the total weight and total area
 		# of the objects in the container.
 
-
-
 		return  [ objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects ]
 
 
@@ -293,8 +294,6 @@ class KpackEA:
 
 
 		if len(candidates) > 1:
-
-			print("multiple candidate")
 			
 			# Find the minimum remaining area between these candidates
 
@@ -401,11 +400,14 @@ class KpackEA:
 		itemCodes = [code for code in objects.keys() if code !=0]
 
 
+		# Check if any other object is left or not. If not, return -1
+		if len(itemCodes) == len(itemCodeBlackList):
+			return -1
+
 		# Selecting a random itemCode and filter with itemCodeBlackList
 		randomItemCode= choice([i for i in range(1,len(itemCodes)+1) if i not in itemCodeBlackList ])
 
-
-		return randomItemCode
+		return 2
 
 
 
@@ -819,18 +821,24 @@ class KpackEA:
 					# to be filtered in the "add" action.
 					itemsInContainer = [ x[0] for x in offs[0]  ]
 
-					itemCode = self.get_random_object(objects,itemsInContainer)
+					#TODODODODODODOD
+					itemCode = self.get_random_object(objects,list(set(itemsInContainer)))
 
-					# Parameters of the new object
-					newObjectParams = objects[itemCode]
+					# If itemcode is not -1, means that we have objects that we can add to the
+					# container.
+					if itemCode != -1: 
 
-					# Adding the newObject
-					newObject = self.check_add_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
+						# Parameters of the new object
+						newObjectParams = objects[itemCode]
 
-					if newObject:
-						offs[0].append((itemCode,newObject))
-					else:
-						print("FAILED ADDING")
+						
+						# Adding the newObject
+						newObject = self.check_add_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
+
+						if newObject:
+							offs[0].append((itemCode,newObject))
+						
+
 
 				elif action == "remove":
 
