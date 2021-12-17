@@ -83,6 +83,8 @@ class kPack:
 
 		'OBJ_FILE_NO_OBJECTS_SEG_DEF': 'Objects Segment Missing',
 
+		'OBJ_FiLE_OBJECT_DEFINITION_ERR': 'Object Definition Error'
+
 		}
 
 
@@ -300,6 +302,10 @@ class kPack:
 					newItem.set_item_area()
 
 
+				else:
+					self.logger.log_message(self.logMessages['OBJ_FiLE_OBJECT_DEFINITION_ERR']+str(lineNum),'ERR')
+					exit(1)
+
 
 				# Adding the objects
 
@@ -308,13 +314,11 @@ class kPack:
 				if currentSegment=='Container':
 
 					if containerObjCnt!=0:
-						print("UES")
 						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
 						exit(1)
 
 					# Check for the object count
 					if objCount!=1:
-						print("YES")
 						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
 						exit(1)
 
