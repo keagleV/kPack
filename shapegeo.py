@@ -1,9 +1,27 @@
 from shapely.geometry.point import Point
 from shapely.geometry import LineString
-from random import uniform
 from shapely.affinity import rotate
 from shapely.affinity import scale
 from shapely.geometry import Polygon
+from shapely.ops import split
+from random import uniform
+from random import choice
+from math import tan
+
+
+
+# class ShapeParameters:
+# 	'''
+# 		This class has implemented the shape's parameters in the case of this project
+# 	'''
+# 	def __init__(self,centerX,centerY,radius,side):
+# 		self.centerY=centerY
+# 		self.centerX=centerX
+# 		self.radius=radius
+# 		self.side=side
+
+
+
 
 
 class ShapeGeo:
@@ -11,6 +29,28 @@ class ShapeGeo:
 		This class has implemented the necessary functionalities required
 		to draw shapes and manipulate them.
 	'''
+
+
+
+	# def create_object(self,objectType, objectParameters):
+	# 	'''
+	# 		This function will create an object based on the given parameters
+	# 		and returns the objects.
+	# 	'''
+
+	# 	if objectType == 'circle':
+	# 		pass
+
+	# 	elif objectType == 'square':
+	# 		pass
+
+	# 	elif objectType == 'rti':
+	# 		pass
+
+	# 	elif objectType == 'ellipse':
+	# 		pass
+
+
 
 
 	def create_circle(self,centerX=0,centerY=0,radius=1):
@@ -126,3 +166,54 @@ class ShapeGeo:
 
 
 		return (x,y)
+
+
+
+	def split_shape_with_crossing_line(self,shape):
+		'''
+			This function splits the given shape by a random crossing line, and
+			returns the segments created by the crossing line
+		'''
+
+
+		# First get one random point inside the shape
+
+		p1 = self.get_random_point_from_shape(shape)
+
+
+		# TODO
+		# Then we have to choose a random slope for the line. We omit the lines with 
+		# slop infinity which are caused by the degrees of 90 and 270.
+		lineSlope= 	 tan ( choice([i for i in range(0,360) if i not in [ 90 , 270 ] ]) )
+
+
+
+		# Then we have to extend the line crossing the p1 with the calculated slope
+		#, such that, it intersects	the shape. For that, we will used extra points 
+		# which have the x coordinates of x_max+1 and x_min-1. We will use the line 
+		# equation to calculate the corresponding y values.
+
+		min_x, min_y, max_x, max_y = shape.bounds
+
+
+		# Line equation to drive two more secure points to draw the crossing line.
+		yMaxOnLine = lineSlope * (  (max_x+1) - p1[0]  ) + p1[1]
+
+		yMinOnLine = lineSlope * (  (min_x-1) - p1[0]  ) + p1[1]
+
+
+		# Now two points are ready to create the crossing line
+		crossLinePoints= [(max_x+1 , yMaxOnLine ), (min_x-1,yMinOnLine)]
+
+
+		# Defining the cross line
+		crossLine =  LineString ( crossLinePoints )
+
+
+		# List of shapes resulting from the segmentation
+		shapes = list(split(shape,crossLine).geoms)
+
+
+		return shapes
+
+

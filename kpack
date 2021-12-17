@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import argparse
+from argparse import ArgumentParser
 from re import match
 from re import search
 from os import path
@@ -8,8 +8,10 @@ from copy import deepcopy
 
 from kpackea import *
 from shapegeo import *
-from logger import *
 from items import *
+from logger import Logger
+
+
 
 
 
@@ -20,7 +22,7 @@ class kPack:
 		This class implements the kPack program
 	'''
 
-	def __init__(self,eaParams,eaAlgo,shapegeo,logger):
+	def __init__(self,eaParams,eaAlgo,shapeGeo,logger):
 
 		# Object file to read the details of the objects
 		self.objFile=str()
@@ -31,9 +33,8 @@ class kPack:
 		# Dictionary of all the objects
 		self.objects=dict()
 
-
 		# Shape Geometery library handler
-		self.shgeo=shapegeo
+		self.shapeGeo=shapeGeo
 
 		# Logger library handler
 		self.logger=logger
@@ -90,7 +91,7 @@ class kPack:
 			This function implements the command line argument reader
 		'''
 
-		parser = argparse.ArgumentParser(description='kPack Help')
+		parser = ArgumentParser(description='kPack Help')
 
 		parser.add_argument('-f','--file',  type=str, nargs=1,help='Specify A Report File Name')
 
@@ -260,7 +261,7 @@ class kPack:
 					newItemParams.set_side(squareSide)
 
 
-					newItem.set_item_type('sqaure')
+					newItem.set_item_type('square')
 					newItem.set_item_value(squareValue)
 					newItem.set_item_weight(squareWeight)
 
@@ -367,21 +368,44 @@ class kPack:
 		# Filter the objects
 		self.objects=self.eaAlgo.initial_filtering(self.objects)
 
-		initialPopulation=self.eaAlgo.generate_initial_population(self.objects)
 
+		# Parameters of the container
+		containerObjParams=self.objects[0]
+
+		# Container center point coordinates
+		containerCpX,containerCpY=containerObjParams.get_item_center_point()
+
+		# Creating the object of the container based on its parameters
+		containerObj=None
+
+
+		if containerObjParams.get_item_type()=='circle':
+			containerObj=self.shapeGeo.create_circle(centerX=containerCpX,centerY=containerCpY,radius=containerObjParams.get_item_param().get_radius())
+
+		elif containerObjParams.get_item_type()=='square':
+			containerObj=self.shapeGeo.create_circle(centerX=containerCpX,centerY=containerCpY,side=containerObjParams.get_item_param().get_side(),rotation=containerObjParams.get_item_rotation_angle())
+
+
+
+
+		initialPopulation=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
+
+
+		population=initialPopulation
+		
+		
+		self.eaAlgo.calculate_fitness_value(population,self.objects)
+
+
+
+		selectedPopulation = self.eaAlgo.select_from_population(population)			
 
 		
 
-
-			
-
+		parentsNotMated,newOffsprings=self.eaAlgo.mate_population(selectedPopulation,containerObj)
 
 
-
-
-
-
-
+		self.eaAlgo.perform_mutation(self.objects,newOffsprings)
 
 
 
@@ -389,12 +413,12 @@ class kPack:
 
 logger=Logger()
 eaParams=EvolAlgoParams()
-shapegeo=ShapeGeo()
-eaAlgo=KpackEA(logger,eaParams,shapegeo)
+shapeGeo=ShapeGeo()
+eaAlgo=KpackEA(logger,eaParams,shapeGeo)
 
 
 
-obj=kPack(eaParams,eaAlgo,shapegeo,logger)
+obj=kPack(eaParams,eaAlgo,shapeGeo,logger)
 obj.read_arguement_params()
 obj.read_obj_file()
 
