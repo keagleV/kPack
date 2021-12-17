@@ -5,6 +5,7 @@ from random import randint
 from random import shuffle
 from random import uniform
 from collections import namedtuple
+import matplotlib.pyplot as plt
 
 
 class EvolAlgoParams:
@@ -16,13 +17,14 @@ class EvolAlgoParams:
 	def __init__(self):
 
 		# Population size
-		self.populationSize=100
+		self.populationSize=40
 
 		# Number of tries to select an object
-		self.objectSelectionTries=1000
-		self.objectAdditionTries=1000
+		self.objectSelectionTries=300
+		self.objectAdditionTries=300
+
 		# Number of tries to set up the initial population
-		self.initPopSetupTries=1000
+		self.initPopSetupTries=300
 
 		# Mating probability
 		self.mateProb=0.7
@@ -125,6 +127,7 @@ class KpackEA:
 		initialPopulation=[]
 
 		for i in range(self.eaParams.populationSize):
+			print(i)
 			initialPopulation.append(self.pack_objects(objects,containerObj,containerObjParams))
 
 
@@ -270,6 +273,8 @@ class KpackEA:
 		# Return the pack of objects alongside the total weight and total area
 		# of the objects in the container.
 
+
+
 		return  [ objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects ]
 
 
@@ -347,11 +352,16 @@ class KpackEA:
 
 
 
-			# Check if the object ovelaps the continer.
+			# Check if the object ovelaps the continer or not. To check, we can simply check
+			# whether the object is inside the container or not. If yes, it means that they do 
+			# not overlap, otherwise, they overlap.
+
 
 			# If it overlaps, continue and select another position and rotation
-			if self.shapeGeo.check_shape_overlap(containerObj,newObject):
+			if not self.shapeGeo.check_shape_inside_other(containerObj,newObject):
 				continue
+
+
 
 			# Check if the object overlaps the objects in the container
 			overlapStatus=0
@@ -363,7 +373,7 @@ class KpackEA:
 			# If no overlap detected, add the object to the container/
 			# If so, try again with the object.
 			if not overlapStatus:
-				
+
 				return newObject
 				# # Adding the object to the container
 				# objectsInContainer.append((itemCode,newObject))
@@ -839,3 +849,14 @@ class KpackEA:
 
 			else:
 				offsprings.append(offs)
+
+
+	def draw(self,shapes):
+
+		for shape in shapes:
+
+			x, y = shape.exterior.xy
+
+			plt.plot(x,y,c="black")
+
+		plt.show()

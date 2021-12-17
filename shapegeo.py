@@ -148,7 +148,15 @@ class ShapeGeo:
 			This function checks whether two shapes overlap or not.
 		'''
 
-		return shape1.touches(shape2)
+		return shape1.intersects(shape2)
+
+	
+	def check_shape_inside_other(self,shape1, shape2):
+		'''
+			This function checks whether shape2 is inside the shape1
+		'''
+
+		return shape1.contains(shape2)
 
 
 	def get_random_point_from_shape(self,shape):

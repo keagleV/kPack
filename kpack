@@ -389,9 +389,11 @@ class kPack:
 		# Generating initial population
 		population=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
 
+		# print(population[0])
+		# exit(0)
+		self.draw_solution(containerObj,population)
 
-
-		
+		exit(0)
 
 		for i in range(300):
 
