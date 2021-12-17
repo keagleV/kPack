@@ -1,11 +1,12 @@
-# kEvol
+# kPack
 
-kEvol is a multi-program family that has implemented EA algorithms.
+kPack is an evolutionary-based algorithm implementation designed for solving the two-dimensional irregular shape packing problem.
 
 ## Description
 
 
-kEvol is a multi-program family that has been written in Python. You can use this family, whether as a single set of programs or modules imported in other programs. kEvol allows to define all the possible values of the EA algorithm's parameters and create all possible combinations of those parameters known as the configurations. The algorithm will test these configurations, and a report will be generated. A command line-based reporter also allows users to load the EA algorithm report(s) and query different information and plot them.
+kPack has implemented the necessary functionalities to define the geometrical parameters of the container(s) and the object(s) that are going to be
+added to the container(s). Besides that, kPack has an internal implementation of EA algorithm designed specifically to solve this problem.
 
 
 ## Getting Started
@@ -25,36 +26,23 @@ kEvol is a multi-program family that has been written in Python. You can use thi
 To install simply
 ```
    $ git clone https://github.com/keagleV/kEvol.git
-   $ cd kEvol
-   $ echo  PATH=$PATH:$PWD >>  $HOME/.bashrc
-   $ cd dist
-   $ pip3 install kEvol-1.0.tar.gz
 ```
-Adding the execuatble files to 
+
+
 
 
 ### Executing program
 
-As stated before, since kEvol is not a single program, there is general structure that must be followed. However, if the prerequistis 
-for each stage is qualified, you can continue and start with any stage.
-
-Firts, create a .val file:
+To execute the program, first create an object file that represents the geometrical parameters of the container and the items that are going to
+be placed in the container.
 
 
-Then use the mkconfig program to create the configuration file:
+Then use the kpack program to start the computation:
 ```
-mkconfig -f NAME.val
-```
-
-Now the configuration file is ready to be used by the main program:
-```
-kevol -f config.cfg
+kpack -f PATH_TO_OBJECT_FILE
 ```
 
-Optionally, you can use the reporter program for perform a novel analyzation:
-```
-reporter -f report.csv
-```
+
 
 ## Help
 
