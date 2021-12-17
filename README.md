@@ -25,7 +25,7 @@ added to the container(s). Besides that, kPack has an internal implementation of
 
 To install simply
 ```
-   $ git clone https://github.com/keagleV/kEvol.git
+   $ git clone https://github.com/keagleV/kPack.git
 ```
 
 
