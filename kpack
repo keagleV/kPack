@@ -11,6 +11,7 @@ from shapegeo import *
 from items import *
 from logger import Logger
 
+import matplotlib.pyplot as plt
 
 
 
@@ -358,8 +359,6 @@ class kPack:
 			exit(1)
 
 
-
-
 	def run_ea_computation(self):
 		'''
 			This function runs the EA algorithm on the objects
@@ -387,26 +386,55 @@ class kPack:
 
 
 
-
-		initialPopulation=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
-
-
-		population=initialPopulation
-		
-		
-		self.eaAlgo.calculate_fitness_value(population,self.objects)
+		# Generating initial population
+		population=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
 
 
-
-		selectedPopulation = self.eaAlgo.select_from_population(population)			
 
 		
 
-		parentsNotMated,newOffsprings=self.eaAlgo.mate_population(selectedPopulation,containerObj)
+		for i in range(300):
+
+			print(i)
+			self.eaAlgo.calculate_fitness_value(population,self.objects)
 
 
-		self.eaAlgo.perform_mutation(self.objects,newOffsprings)
 
+			selectedPopulation = self.eaAlgo.select_from_population(population)			
+
+		
+
+			parentsNotMated,newOffsprings=self.eaAlgo.mate_population(selectedPopulation,containerObj)
+
+
+			self.eaAlgo.perform_mutation(containerObj,containerObjParams,self.objects,newOffsprings)
+
+
+
+		# Return the fittest solution(s) from the population
+		fittestSolutions=self.eaAlgo.get_fittest_solution(population)
+
+
+
+		return containerObj,fittestSolutions
+
+
+	def draw_solution(self,containerObj,solutions):
+
+
+		x, y = containerObj.exterior.xy
+
+		plt.plot(x,y,c="black")
+
+		solution=solutions[0]
+
+		for shape in solution[0]:
+
+			x, y = shape[1].exterior.xy
+
+			plt.plot(x,y,c="black")
+
+		plt.show()
 
 
 
@@ -425,8 +453,8 @@ obj.read_obj_file()
 
 # for k,v in obj.objects.items():
 # 	print(k,v)
-obj.run_ea_computation()
-
+containerObj,res=obj.run_ea_computation()
+obj.draw_solution(containerObj,res)
 
 # for k,v in obj.objects.items():
 # 	print(k,v)

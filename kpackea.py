@@ -20,7 +20,7 @@ class EvolAlgoParams:
 
 		# Number of tries to select an object
 		self.objectSelectionTries=1000
-
+		self.objectAdditionTries=1000
 		# Number of tries to set up the initial population
 		self.initPopSetupTries=1000
 
@@ -185,76 +185,86 @@ class KpackEA:
 			# not in the container. Note that objectsInContainer is list of tuples, in which, item codes
 			# are the first element of each of the tuples
 
+
+			# Item code of the new object
 			itemCode= choice([i for i in range(1,numberOfObjects+1) if i not in [e[0] for e in objectsInContainer] ])
 
-			# Check if this object can be placed in the container due
-			# to its weight and the weight of the existing objects.
-			# If so, discard the object and take the next object.
-			newObjectWeight=objects[itemCode].get_item_weight()
-			if weightOfObjects + newObjectWeight  > containerWeight:
-				continue
+			# Parameters of the new object
+			newObjectParams = objects[itemCode]
+
+			# Adding the newObject
+			newObject = self.check_add_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
+
+			if newObject:
+
+			# # Check if this object can be placed in the container due
+			# # to its weight and the weight of the existing objects.
+			# # If so, discard the object and take the next object.
+				# newObjectWeight=objects[itemCode].get_item_weight()
+			# if weightOfObjects + newObjectWeight  > containerWeight:
+			# 	continue
 
 
-			# First create an shape for the object.
-			newObject=None
+			# # First create an shape for the object.
+			# newObject=None
 
 
-			# Manipulate the selected item so that it satisfies the placement rule
-			for j in range(self.eaParams.objectSelectionTries):
+			# # Manipulate the selected item so that it satisfies the placement rule
+			# for j in range(self.eaParams.objectSelectionTries):
 
-				# Choose a random placement and a random rotation for the object
-				newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
-				newObjRotation=randint(0,360)
-				objects[itemCode].set_item_center_point(newObjCPX,newObjCPY)
-				objects[itemCode].set_item_rotation_angle(newObjRotation)
-
-
-				if objects[itemCode].get_item_type()=='circle':
-					newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=objects[itemCode].get_item_param().get_radius())
-
-				elif objects[itemCode].get_item_type()=='square':
-					newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-				elif objects[itemCode].get_item_type()=='rti':
-					newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-				# TODO 
-				# elif objects[itemCode].get_item_type()=='ellipse':
-				# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
+			# 	# Choose a random placement and a random rotation for the object
+			# 	newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
+			# 	newObjRotation=randint(0,360)
+			# 	objects[itemCode].set_item_center_point(newObjCPX,newObjCPY)
+			# 	objects[itemCode].set_item_rotation_angle(newObjRotation)
 
 
+			# 	if objects[itemCode].get_item_type()=='circle':
+			# 		newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=objects[itemCode].get_item_param().get_radius())
+
+			# 	elif objects[itemCode].get_item_type()=='square':
+			# 		newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
+
+			# 	elif objects[itemCode].get_item_type()=='rti':
+			# 		newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
+
+			# 	# TODO 
+			# 	# elif objects[itemCode].get_item_type()=='ellipse':
+			# 	# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
 
 
-				# Check if the object ovelaps the continer.
 
-				# If it overlaps, continue and select another position and rotation
-				if self.shapeGeo.check_shape_overlap(containerObj,newObject):
-					continue
 
-				# Check if the object overlaps the objects in the container
-				overlapStatus=0
-				for objTuple in objectsInContainer:
-					if self.shapeGeo.check_shape_overlap(objTuple[1],newObject):
-						overlapStatus=1
-						break
+			# 	# Check if the object ovelaps the continer.
 
-				# If no overlap detected, add the object to the container/
-				# If so, try again with the object.
-				if not overlapStatus:
+			# 	# If it overlaps, continue and select another position and rotation
+			# 	if self.shapeGeo.check_shape_overlap(containerObj,newObject):
+			# 		continue
+
+			# 	# Check if the object overlaps the objects in the container
+			# 	overlapStatus=0
+			# 	for objTuple in objectsInContainer:
+			# 		if self.shapeGeo.check_shape_overlap(objTuple[1],newObject):
+			# 			overlapStatus=1
+			# 			break
+
+			# 	# If no overlap detected, add the object to the container/
+			# 	# If so, try again with the object.
+			# 	if not overlapStatus:
 					
-					# Adding the object to the container
-					objectsInContainer.append((itemCode,newObject))
+				# Adding the object to the container
+				objectsInContainer.append((itemCode,newObject))
 
-					# Updating the total weight of the objects in the container
-					weightOfObjects += newObjectWeight
+				# Updating the total weight of the objects in the container
+				weightOfObjects += newObjectParams.get_item_weight()
 
-					# Updating the total area of the objects in the container
-					areaOfObjects+= objects[itemCode].get_item_area()
+				# Updating the total area of the objects in the container
+				areaOfObjects+= newObjectParams.get_item_area()
 
-					# Updating the total value of the objects in the container
-					valueOfObjects += objects[itemCode].get_item_value()
+				# Updating the total value of the objects in the container
+				valueOfObjects += newObjectParams.get_item_value()
 
-					break
+					# break
 
 
 		# Return the pack of objects alongside the total weight and total area
@@ -263,84 +273,110 @@ class KpackEA:
 		return  [ objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects ]
 
 
+	def get_fittest_solution(self,population):
+
+		'''
+			This function will return the fittest solution(s) in the population
+		'''
+
+		# First find the maximum value in the solutions
+
+		maxVal= max( [sol[2] for sol in population] )
 
 
-	# def add_object_to_container(self,containerObj,containerObjParams,newObject,newObjParams):
-	# 	'''
-	# 		This function will try to add a new object to the container. If it was successfull
-	# 	'''
-
-	# 	itemCode=0
-
-	# 	# Check if this object can be placed in the container due
-	# 	# to its weight and the weight of the existing objects.
-	# 	# If so, discard the object and take the next object.
-	# 	newObjectWeight=objects[itemCode].get_item_weight()
-	# 	if weightOfObjects + newObjectWeight  > containerWeight:
-	# 		continue
+		candidates = [ sol for sol in population if sol[2]==maxVal]
 
 
-	# 	# First create an shape for the object.
-	# 	newObject=None
+		if len(candidates) > 1:
 
+			print("multiple candidate")
+			
+			# Find the minimum remaining area between these candidates
 
-	# 	# Manipulate the selected item so that it satisfies the placement rule
-	# 	for j in range(self.eaParams.objectSelectionTries):
+			minRemainArea=min( [sol[3] for sol in candidates] ) 
 
-	# 		# Choose a random placement and a random rotation for the object
-	# 		newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
-	# 		newObjRotation=randint(0,360)
-	# 		objects[itemCode].set_item_center_point(newObjCPX,newObjCPY)
-	# 		objects[itemCode].set_item_rotation_angle(newObjRotation)
+		
+			candidates= [ sol for sol in candidates if sol[3]==minRemainArea ]
 
-
-	# 		if objects[itemCode].get_item_type()=='circle':
-	# 			newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=objects[itemCode].get_item_param().get_radius())
-
-	# 		elif objects[itemCode].get_item_type()=='square':
-	# 			newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-	# 		elif objects[itemCode].get_item_type()=='rti':
-	# 			newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-	# 		# TODO 
-	# 		# elif objects[itemCode].get_item_type()=='ellipse':
-	# 		# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
+		return candidates
 
 
 
+	def check_add_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams):
+		'''
+			This function will try to add a new object to the container. If it was successfull, it returns the created object,
+			if not, it returns None
+		'''
 
-	# 		# Check if the object ovelaps the continer.
+		# Check if this object can be placed in the container due
+		# to its weight and the weight of the existing objects.
+		# If so, discard the object and take the next object.
+		newObjectWeight= newObjParams.get_item_weight()
 
-	# 		# If it overlaps, continue and select another position and rotation
-	# 		if self.shapeGeo.check_shape_overlap(containerObj,newObject):
-	# 			continue
+		if currObjectsWeight + newObjectWeight  > containerObjParams.get_item_weight():
+			return None
 
-	# 		# Check if the object overlaps the objects in the container
-	# 		overlapStatus=0
-	# 		for objTuple in objectsInContainer:
-	# 			if self.shapeGeo.check_shape_overlap(objTuple[1],newObject):
-	# 				overlapStatus=1
-	# 				break
 
-	# 		# If no overlap detected, add the object to the container/
-	# 		# If so, try again with the object.
-	# 		if not overlapStatus:
+		# First create an shape for the object.
+		newObject=None
+
+
+		# Manipulate the selected item so that it satisfies the placement rule
+		for j in range(self.eaParams.objectAdditionTries):
+
+			# Choose a random placement and a random rotation for the object
+			newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
+			newObjRotation=randint(0,360)
+			newObjParams.set_item_center_point(newObjCPX,newObjCPY)
+			newObjParams.set_item_rotation_angle(newObjRotation)
+
+
+			if newObjParams.get_item_type()=='circle':
+				newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=newObjParams.get_item_param().get_radius())
+
+			elif newObjParams.get_item_type()=='square':
+				newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=newObjParams.get_item_param().get_side(),rotation=newObjRotation)
+
+			elif newObjParams.get_item_type()=='rti':
+				newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=newObjParams.get_item_param().get_side(),rotation=newObjRotation)
+
+			# TODO 
+			# elif objects[itemCode].get_item_type()=='ellipse':
+			# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=newObjParams.get_item_param().get_side(),rotation=newObjRotation)
+
+
+
+
+			# Check if the object ovelaps the continer.
+
+			# If it overlaps, continue and select another position and rotation
+			if self.shapeGeo.check_shape_overlap(containerObj,newObject):
+				continue
+
+			# Check if the object overlaps the objects in the container
+			overlapStatus=0
+			for objTuple in objectsInContainer:
+				if self.shapeGeo.check_shape_overlap(objTuple[1],newObject):
+					overlapStatus=1
+					break
+
+			# If no overlap detected, add the object to the container/
+			# If so, try again with the object.
+			if not overlapStatus:
 				
-	# 			# Adding the object to the container
-	# 			objectsInContainer.append((itemCode,newObject))
+				return newObject
+				# # Adding the object to the container
+				# objectsInContainer.append((itemCode,newObject))
 
-	# 			# Updating the total weight of the objects in the container
-	# 			weightOfObjects += newObjectWeight
+				# # Updating the total weight of the objects in the container
+				# weightOfObjects += newObjectWeight
 
-	# 			# Updating the total area of the objects in the container
-	# 			areaOfObjects+= objects[itemCode].get_item_area()
+				# # Updating the total area of the objects in the container
+				# areaOfObjects+= objects[itemCode].get_item_area()
 
-	# 			# Updating the total value of the objects in the container
-	# 			valueOfObjects += objects[itemCode].get_item_value()
-
-	# 			break
-
+				# # Updating the total value of the objects in the container
+				# valueOfObjects += objects[itemCode].get_item_value()
+		return None
 
 
 
@@ -360,7 +396,6 @@ class KpackEA:
 
 
 		return randomItemCode
-
 
 
 
@@ -751,7 +786,7 @@ class KpackEA:
 
 
 
-	def perform_mutation(self,objects,newOffsprings):
+	def perform_mutation(self,containerObj,containerObjParams,objects,newOffsprings):
 		'''
 			This function will perform mutation on the popul
 		'''
@@ -767,13 +802,25 @@ class KpackEA:
 				action =  choices(["add","remove","modify"],weights=[self.eaParams.mutAddProb ,self.eaParams.mutRemovProb,self.eaParams.mutModProb  ],k=1)[0]
 
 
-				
-				itemsInContainer = [ x[0] for x in offs[0]  ]
 				if action == "add":
+
 
 					# First find the itemCode of the objects int the solution which are going
 					# to be filtered in the "add" action.
+					itemsInContainer = [ x[0] for x in offs[0]  ]
+
 					itemCode = self.get_random_object(objects,itemsInContainer)
+
+					# Parameters of the new object
+					newObjectParams = objects[itemCode]
+
+					# Adding the newObject
+					newObject = self.check_add_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
+
+					if newObject:
+						offs[0].append((itemCode,newObject))
+					else:
+						print("FAILED ADDING")
 
 				elif action == "remove":
 
@@ -786,7 +833,6 @@ class KpackEA:
 						offs[0].remove(objectToBeDeleted)
 
 				elif action == "modify":
-
 					pass
 
 
