@@ -4,7 +4,9 @@ from random import choice
 from random import randint
 from random import shuffle
 from random import uniform
+from copy import deepcopy
 from collections import namedtuple
+
 import matplotlib.pyplot as plt
 
 
@@ -29,18 +31,16 @@ class EvolAlgoParams:
 		self.mateProb=0.7
 
 		# Mutation probability
-		self.mutProb=0.5
+		self.mutProb=0.9
 
 		# Mutation add action probability
-		self.mutAddProb=0.4
+		self.mutAddProb=0.9
 
 		# Mutation remove action probability
-		self.mutRemovProb=0.2
+		self.mutRemovProb=0.05
 
 		# Mutation modify action probability
-		self.mutModProb= 0.4
-		
-
+		self.mutModProb= 0.05
 
 
 class KpackEA:
@@ -189,11 +189,11 @@ class KpackEA:
 			# Item code of the new object
 			itemCode= choice([i for i in range(1,numberOfObjects+1) if i not in [e[0] for e in objectsInContainer] ])
 
-			# Parameters of the new object
-			newObjectParams = objects[itemCode]
+			# Parameters of the new object, that is a copy of the actual object's parameters
+			newObjectParams = deepcopy(objects[itemCode])
 
 			# Adding the newObject
-			newObject = self.check_add_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
+			newObjectTuple = self.check_add_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
 
 
 			# shapes=[ sh[1] for sh in objectsInContainer]
@@ -201,7 +201,7 @@ class KpackEA:
 
 			# self.draw(shapes)
 
-			if newObject:
+			if newObjectTuple:
 
 			# # Check if this object can be placed in the container due
 			# # to its weight and the weight of the existing objects.
@@ -259,7 +259,7 @@ class KpackEA:
 			# 	if not overlapStatus:
 					
 				# Adding the object to the container
-				objectsInContainer.append((itemCode,newObject))
+				objectsInContainer.append((itemCode,newObjectTuple[0],newObjectTuple[1]))
 
 				# Updating the total weight of the objects in the container
 				weightOfObjects += newObjectParams.get_item_weight()
@@ -274,9 +274,18 @@ class KpackEA:
 
 
 		# Return the pack of objects alongside the total weight and total area
-		# of the objects in the container.
+		# of the objects alonside the fitness value as the last element which is -1 at first.
 
-		return  [ objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects ]
+		return  [ objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects , -1 ]
+
+
+
+	def get_best_fitness_of_population(self,population):
+		'''
+			This function returns the best fitness value of the population
+		'''
+		return  max( [sol[4] for sol in population] )
+
 
 
 	def get_fittest_solution(self,population):
@@ -285,22 +294,22 @@ class KpackEA:
 			This function will return the fittest solution(s) in the population
 		'''
 
-		# First find the maximum value in the solutions
+		# First find the maximum value for the fitness parameter in the solutions
 
-		maxVal= max( [sol[2] for sol in population] )
-
-
-		candidates = [ sol for sol in population if sol[2]==maxVal]
+		maxVal= max( [sol[4] for sol in population] )
 
 
-		if len(candidates) > 1:
+		candidates = [ sol for sol in population if sol[4]==maxVal]
+
+
+		# if len(candidates) > 1:
 			
-			# Find the minimum remaining area between these candidates
+		# 	# Find the minimum remaining area between these candidates
 
-			minRemainArea=min( [sol[3] for sol in candidates] ) 
+		# 	minRemainArea=min( [sol[3] for sol in candidates] ) 
 
 		
-			candidates= [ sol for sol in candidates if sol[3]==minRemainArea ]
+		# 	candidates= [ sol for sol in candidates if sol[3]==minRemainArea ]
 
 		return candidates
 
@@ -373,7 +382,7 @@ class KpackEA:
 			# If so, try again with the object.
 			if not overlapStatus:
 
-				return newObject
+				return (newObject,newObjParams)
 				# # Adding the object to the container
 				# objectsInContainer.append((itemCode,newObject))
 
@@ -423,41 +432,94 @@ class KpackEA:
 		# Container's total area
 		containerArea= objects[0].get_item_area()
 
+
+		# List of solutions' values
+		listOfSolsValues=[]
+
+		# List of solution's remaining area
+		listOfSolsAreas=[]
+
+
 		for solution in population:
+			listOfSolsValues.append(solution[2])
+			listOfSolsAreas.append(solution[3])
+
+		''' 
+			Weight vector is defined as follows:
+
+				1). Normalizing values in the listOfSolsValues
+				2). Normalizing values in the listOfSolsAreas
+				3). Adding values of the two lists as (value(i) + 1/area(i) )
 
 
-			''' 
-			Each solution is a list of elements in which:
-			 	First element: List of objects in the container
-			    Second element: Total weight of objects in the container
-				Third element: Total value of objects in the container
-				Forth element: Remaining area in the container
+			Normalizing the listOfSolsValues:
 
-			'''
+				1). Add 1 to each element of the listOfSolsValues to adjust them
+					beggining from 1.
 
-			# For each solution, we have to calculate the total value of the objects 
-			# in the solution and the remaining area of the container.
+				2). Multiply each element by a constant, to bring each element to a 
+					secure zone.
 
-			# Total value of the objects in the container
-			totalValueOfObjects=0
+			Normalizing the listOfSolsAreas:
 
-			# Total area of the objects in the container
-			totalAreaOfObjects=0
+				1). Add 1 to each element of the listOfSolsValues to adjust them
+					beggining from 1.
+
+		'''	
+
+		# Normalizing values vector. Multiplication constant is 10.
+		listOfSolsValues = [10000*(val+1) for val in listOfSolsValues ]
 
 
-			for obj in solution[0]:
-
-				# obj[0] is the object's itemCode
-
-				totalValueOfObjects += objects[obj[0]].get_item_value()
-
-				totalAreaOfObjects += objects[obj[0]].get_item_area()
+		# Normalizing area vector
+		listOfSolsAreas = [ (area+1) for area in listOfSolsAreas ]
 
 
 
-			# Updating the solution
-			solution[2] = totalValueOfObjects
-			solution[3] = containerArea - totalAreaOfObjects
+		# TODO better coding?
+		# Updating the fitness value of the solutions
+		newFitnesses=[]
+		for (value, area) in zip(listOfSolsValues, listOfSolsAreas):
+			newFitnesses.append(value+1/area)
+
+		for i in range(len(population)):
+			population[i][4]=newFitnesses[i]
+
+
+
+
+		# 	''' 
+		# 	Each solution is a list of elements in which:
+		# 	 	First element: List of objects in the container
+		# 	    Second element: Total weight of objects in the container
+		# 		Third element: Total value of objects in the container
+		# 		Forth element: Remaining area in the container
+
+		# 	'''
+
+		# 	# For each solution, we have to calculate the total value of the objects 
+		# 	# in the solution and the remaining area of the container.
+
+		# 	# Total value of the objects in the container
+		# 	totalValueOfObjects=0
+
+		# 	# Total area of the objects in the container
+		# 	totalAreaOfObjects=0
+
+
+		# 	for obj in solution[0]:
+
+		# 		# obj[0] is the object's itemCode
+
+		# 		totalValueOfObjects += objects[obj[0]].get_item_value()
+
+		# 		totalAreaOfObjects += objects[obj[0]].get_item_area()
+
+
+
+		# 	# Updating the solution
+		# 	solution[2] = totalValueOfObjects
+		# 	solution[3] = containerArea - totalAreaOfObjects
 
 			
 
@@ -639,68 +701,32 @@ class KpackEA:
 			This function will select solutions from the population
 		'''
 
-		# List of solutions' values
-		listOfSolsValues=[]
+		
 
-		# List of solution's remaining area
-		listOfSolsAreas=[]
-
-
-		for solution in population:
-			listOfSolsValues.append(solution[2])
-			listOfSolsAreas.append(solution[3])
-
-
-
-		# Weight vector for the selection
+		# Weight vector for the selection which is based on the fitness value
 		selectionVector=[]
 
-		''' 
-			Weight vector is defined as follows:
+		for solution in population:
+			selectionVector.append(solution[4])
 
-				1). Normalizing values in the listOfSolsValues
-				2). Normalizing values in the listOfSolsAreas
-				3). Adding values of the two lists as (value(i) + 1/area(i) )
-
-
-			Normalizing the listOfSolsValues:
-
-				1). Add 1 to each element of the listOfSolsValues to adjust them
-					beggining from 1.
-
-				2). Multiply each element by a constant, to bring each element to a 
-					secure zone.
-
-			Normalizing the listOfSolsAreas:
-
-				1). Add 1 to each element of the listOfSolsValues to adjust them
-					beggining from 1.
-
-		'''	
-
-		# Normalizing values vector. Multiplication constant is 10.
-		listOfSolsValues = [10*(val+1) for val in listOfSolsValues ]
-
-
-		# Normalizing area vector
-		listOfSolsAreas = [ (area+1) for area in listOfSolsAreas ]
-
-		for (value, area) in zip(listOfSolsValues, listOfSolsAreas):
-			selectionVector.append(value+1/area)
-
+		
 
 
 		# Now return a selection of the population based on the weight vector.
 		selectedParents = choices(population,weights=selectionVector,k=len(population))
 		
+
+
 		# Return a shuffled form of the selected parents
 		shuffle(selectedParents)
 		
+
+
 		return selectedParents
 
 
 
-	def mate_population(self,population,containerObj):
+	def mate_population(self,population,containerObj,containerObjParams,objects):
 		'''
 			This function will mate the parents of the population, and generates the
 			offsprings
@@ -753,14 +779,24 @@ class KpackEA:
 				parent2ObjectsSeg2 = []
 
 
-				for obj in parent1Objects:
+				# List of objects that are on the crossing boundary in the first parent
+				parent1ObjectsObBoundary=[]
 
+				# List of objects that are on the crossing boundary in the second parent
+				parent2ObjectsObBoundary=[]
+
+
+
+				for obj in parent1Objects:
 
 					if containerSegments[0].contains(obj[1]):
 						parent1ObjectsSeg1.append(obj)
 
 					elif containerSegments[1].contains(obj[1]):
 						parent1ObjectsSeg2.append(obj)
+
+					else: #TODO check the correctness
+						parent1ObjectsObBoundary.append(obj)
 
 
 				for obj in parent2Objects:
@@ -771,21 +807,118 @@ class KpackEA:
 					elif containerSegments[1].contains(obj[1]):
 						parent2ObjectsSeg2.append(obj)
 
+					else: #TODO check the correctness
+						parent2ObjectsObBoundary.append(obj)
+
+
+				# Creating the list of objects in the offsprings
 				offspring1=[ *parent1ObjectsSeg1, *parent2ObjectsSeg2 ]
 				offspring2=[ *parent1ObjectsSeg2 , *parent2ObjectsSeg1 ]
+
+				# print([ tu[0] for tu in parent1ObjectsSeg1])
+		
+				# print([ tu[0] for tu in parent1ObjectsSeg2])
+				# print([ tu[0] for tu in parent2ObjectsSeg1])
+				# print([ tu[0] for tu in parent2ObjectsSeg2])
+
+				# print([ tu[0] for tu in offspring1])
+				# print([ tu[0] for tu in offspring2])
+				# exit(0)
+
+				# Remove duplicate items in the offspring1
+				shuffle(offspring1)
+				offspring1ItemCodes=[]
+				for tup in offspring1:
+					if tup[0] in offspring1ItemCodes:
+						# This is a duplicate and should be deleted
+						offspring1.remove(tup)
+						# print("DELETED 1")
+					else:
+						offspring1ItemCodes.append(tup[0])
+
 				
+				# Remove duplicate items in the offspring2
+				shuffle(offspring2)
+
+				offspring2ItemCodes=[]
+				for tup in offspring2:
+					if tup[0] in offspring2ItemCodes:
+						# This is a duplicate and should be deleted
+						offspring2.remove(tup)
+						# print("DELETED 2")
+					else:
+						offspring2ItemCodes.append(tup[0])
+
+				# print([ tu[0] for tu in offspring1])
+				# print([ tu[0] for tu in offspring2])
+				# exit(0)
+
+				# Calculate the total values, weight, and area of the objects in each offspring
+				offspring1TotalWeight=0
+				offspring1TotalValue=0 
+				offspring1TotalArea=0
+
+				offspring2TotalWeight=0
+				offspring2TotalValue=0 
+				offspring2TotalArea=0
 
 
-				# Remove duplicate items, #TODODODODODODOd
-				# offspring1=list(set(offspring1))
-				# offspring2=list(set(offspring2))
 
+				for tup in offspring1:
+					offspring1TotalWeight+= tup[2].get_item_weight()
+					offspring1TotalValue+= tup[2].get_item_value()
+					offspring1TotalArea+= tup[2].get_item_area()
+
+				for tup in offspring2:
+					offspring2TotalWeight+= tup[2].get_item_weight()
+					offspring2TotalValue+= tup[2].get_item_value()
+					offspring2TotalArea+= tup[2].get_item_area()
+
+# 	def check_add_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams):
+
+
+				#TODO  objects on the boundary
+				for objTuple in parent1ObjectsObBoundary:
+
+					# Try add to the second parent if only it is not in the second parent
+					if not (objTuple[0] in offspring2ItemCodes ) :
+
+
+						obj = self.check_add_object_to_container(containerObj,containerObjParams,offspring2TotalWeight,offspring2,objects[objTuple[0]] )
+
+
+						# If the addition was successful, add the object to the second offspring
+						if obj:	
+							offspring2.append((objTuple[0],obj[0],obj[1]))
+							offspring2TotalWeight += obj[1].get_item_weight()
+							offspring2TotalValue+=obj[1].get_item_value()
+							offspring2TotalArea+= obj[1].get_item_area()
+
+
+				for objTuple in parent2ObjectsObBoundary:
+
+					# Try add to the first parent if only it is not in the first parent
+					if not (objTuple[0] in offspring1ItemCodes ) :
+
+						obj = self.check_add_object_to_container(containerObj,containerObjParams,offspring1TotalWeight,offspring1,objects[objTuple[0]] )
+
+
+						# If the addition was successful, add the object to the second offspring
+						if obj:	
+							offspring1.append((objTuple[0],obj[0],obj[1]))
+
+							offspring1TotalWeight += obj[1].get_item_weight()
+							offspring1TotalValue+=obj[1].get_item_value()
+							offspring1TotalArea+=obj[1].get_item_area()
+
+
+				# exit(0)
 
 
 				# We append the new offsprings in the format of:
 				# objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects				
-				newOffsprings.append( [offspring1,0,0,0] )
-				newOffsprings.append( [offspring2,0,0,0] )
+				newOffsprings.append( [offspring1,offspring1TotalWeight ,offspring1TotalValue ,containerObjParams.get_item_area() - offspring1TotalArea,-1] )
+				newOffsprings.append( [offspring2,offspring2TotalWeight,offspring2TotalValue,containerObjParams.get_item_area() - offspring2TotalArea,-1] )
 
 
 			else:
@@ -829,29 +962,78 @@ class KpackEA:
 					if itemCode != -1: 
 
 						# Parameters of the new object
-						newObjectParams = objects[itemCode]
+						newObjectParams = deepcopy(objects[itemCode])
 
 						
 						# Adding the newObject
 						newObject = self.check_add_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
 
+
+				# objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects				
+
 						if newObject:
-							offs[0].append((itemCode,newObject))
+							offs[0].append((itemCode,newObject[0],newObject[1]))
+							offs[1]+=newObjectParams.get_item_weight()
+							offs[2]+=newObjectParams.get_item_value()
+							offs[3]-=newObjectParams.get_item_area()
+
+						#TODO total weight
 						
 
 
 				elif action == "remove":
+
 
 					if len(offs[0])!=0:
 
 						# Select a random object to be deleted.
 						objectToBeDeleted = choice(offs[0])
 
+						# Parameters of the seleted object
+						selectedObjParams = objectToBeDeleted[2]
+
 						# Removing the object from the list
 						offs[0].remove(objectToBeDeleted)
 
+						offs[1]-=selectedObjParams.get_item_weight()
+						offs[2]-=selectedObjParams.get_item_value()
+						offs[3]+=selectedObjParams.get_item_area()
+
+						# TODO total weight
+
 				elif action == "modify":
-					pass
+
+					if len(offs[0])!=0:
+
+						# Select a random object to be modified.
+						objectToBeModified = choice(offs[0])
+
+						# ItemCode of the selected object
+						selectedObjItemcode = objectToBeModified[0]
+
+						# Parameters of the seleted object
+						selectedObjParams = objectToBeModified[2]
+
+						# Remove the object from the container before performing modification
+						offs[0].remove(objectToBeModified)
+
+
+						# Modify the object and check if can be added to the container or not
+						newObjectTuple = self.check_add_object_to_container(containerObj,containerObjParams, offs[1] - selectedObjParams.get_item_weight() ,offs[0], selectedObjParams )
+
+
+
+						if newObjectTuple:
+								# If the modified object was successful and passed the placements plicies, add the new object
+								# to the container.
+								offs[0].append((selectedObjItemcode,newObjectTuple[0],newObjectTuple[1]))
+
+
+						else:
+							# Object modification did not satisified the placements rules, and 
+							# so it has to be put back.
+							offs[0].append(objectToBeModified)
+
 
 
 

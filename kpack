@@ -43,6 +43,13 @@ class kPack:
 		# EA algorithm handler
 		self.eaAlgo=eaAlgo
 
+		# Convergence of the algorithm after specific iterations
+		self.convIter=10
+
+		# Best fitness value of each iteration is called the convergence's fitness
+		self.convFitness=int()
+
+
 
 		# Object file statements' regexes
 		self.objFileReg = {
@@ -389,32 +396,73 @@ class kPack:
 			containerObj=self.shapeGeo.create_circle(centerX=containerCpX,centerY=containerCpY,radius=containerObjParams.get_item_param().get_radius())
 
 		elif containerObjParams.get_item_type()=='square':
-			containerObj=self.shapeGeo.create_circle(centerX=containerCpX,centerY=containerCpY,side=containerObjParams.get_item_param().get_side(),rotation=containerObjParams.get_item_rotation_angle())
+			containerObj=self.shapeGeo.create_square(centerX=containerCpX,centerY=containerCpY,side=containerObjParams.get_item_param().get_side(),rotation=containerObjParams.get_item_rotation_angle())
+
+
+
+
 
 
 
 		# Generating initial population
 		population=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
 
+		# sol=population[0]
+
+		# for obj in sol[0]:
+		# 	print(obj[2].get_item_type())
+		# 	exit(0)
+
+
+		# exit(0)
+		self.eaAlgo.calculate_fitness_value(population,self.objects)
+
+
+		fittestSolutions=self.eaAlgo.get_fittest_solution(population)
+
 		
+		self.draw_solution(containerObj,[fittestSolutions[0]])
+
 		
 		self.logger.log_message("Start Running The EA Algorithm For 300 Cycles","INF")
 
+
+
+		# Convergence Counter
+		convCnt=self.convIter
+		self.convFitness = self.eaAlgo.get_best_fitness_of_population(population)
+
 		for i in range(300):
+
+
+			# Perform selection from the population
+			selectedPopulation = self.eaAlgo.select_from_population(population)			
+
+			# Performing the combination of parents
+			parentsNotMated,newOffsprings=self.eaAlgo.mate_population(selectedPopulation,containerObj,containerObjParams,self.objects)
+
+		
+			# Performing offspring mutation
+			self.eaAlgo.perform_mutation(containerObj,containerObjParams,self.objects,newOffsprings)
+
+
+			# The new population
+			population=[*parentsNotMated,*newOffsprings]
+
 
 			self.eaAlgo.calculate_fitness_value(population,self.objects)
 
+			bestFitnessOfTheIteration = self.eaAlgo.get_best_fitness_of_population(population)
 
+			# Reset the convergence properties
+			if bestFitnessOfTheIteration != self.convFitness:
+				convCnt=self.convIter
 
-			selectedPopulation = self.eaAlgo.select_from_population(population)			
-
-		
-
-			parentsNotMated,newOffsprings=self.eaAlgo.mate_population(selectedPopulation,containerObj)
-
-
-			self.eaAlgo.perform_mutation(containerObj,containerObjParams,self.objects,newOffsprings)
-
+			else:
+				convCnt-=1
+				
+				if convCnt == 0:
+					break
 
 
 		# Return the fittest solution(s) from the population
@@ -440,6 +488,7 @@ class kPack:
 
 		for solution in solutions:
 
+			print(solution[4])
 
 			x, y = containerObj.exterior.xy
 
