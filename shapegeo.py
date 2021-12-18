@@ -222,6 +222,6 @@ class ShapeGeo:
 		shapes = list(split(shape,crossLine).geoms)
 
 
-		return shapes
+		return shapes,crossLine
 
 

@@ -407,23 +407,12 @@ class kPack:
 		# Generating initial population
 		population=self.eaAlgo.generate_initial_population(self.objects,containerObj,containerObjParams)
 
-		# sol=population[0]
 
-		# for obj in sol[0]:
-		# 	print(obj[2].get_item_type())
-		# 	exit(0)
-
-
-		# exit(0)
 		self.eaAlgo.calculate_fitness_value(population,self.objects)
 
 
-		fittestSolutions=self.eaAlgo.get_fittest_solution(population)
-
 		
-		self.draw_solution(containerObj,[fittestSolutions[0]])
 
-		
 		self.logger.log_message("Start Running The EA Algorithm For 300 Cycles","INF")
 
 
@@ -436,12 +425,12 @@ class kPack:
 
 
 			# Perform selection from the population
-			selectedPopulation = self.eaAlgo.select_from_population(population)			
+			population = self.eaAlgo.select_from_population(population)			
 
 			# Performing the combination of parents
-			parentsNotMated,newOffsprings=self.eaAlgo.mate_population(selectedPopulation,containerObj,containerObjParams,self.objects)
+			parentsNotMated,newOffsprings=self.eaAlgo.mate_population(containerObj,containerObjParams,self.objects,population)
 
-		
+
 			# Performing offspring mutation
 			self.eaAlgo.perform_mutation(containerObj,containerObjParams,self.objects,newOffsprings)
 
@@ -451,6 +440,7 @@ class kPack:
 
 
 			self.eaAlgo.calculate_fitness_value(population,self.objects)
+
 
 			bestFitnessOfTheIteration = self.eaAlgo.get_best_fitness_of_population(population)
 
@@ -519,14 +509,9 @@ obj.read_arguement_params()
 obj.read_obj_file()
 
 
-# for k,v in obj.objects.items():
-# 	print(k,v)
+
 containerObj,res=obj.run_ea_computation()
 obj.draw_solution(containerObj,res)
-
-# for k,v in obj.objects.items():
-# 	print(k,v)
-
 
 
 

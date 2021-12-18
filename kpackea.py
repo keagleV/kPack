@@ -19,13 +19,13 @@ class EvolAlgoParams:
 	def __init__(self):
 
 		# Population size
-		self.populationSize=10
+		self.populationSize=50
 
 		# Number of tries to select an object
-		self.objectAdditionTries=100
+		self.objectAdditionTries=50
 
-		# Number of tries to set up the initial population
-		self.initPopSetupTries=100
+		# Number of tries to set up a solution
+		self.initSolSetupTries=100
 
 		# Mating probability
 		self.mateProb=0.7
@@ -41,6 +41,13 @@ class EvolAlgoParams:
 
 		# Mutation modify action probability
 		self.mutModProb= 0.05
+
+		# Normalizing constant for the total values of solutions
+		self.valueNormConst = 10000
+
+
+		# Mutation scaling paramet
+
 
 
 class KpackEA:
@@ -59,6 +66,8 @@ class KpackEA:
 		# shapeGeo handler
 		self.shapeGeo=shapeGeo
 
+
+	# Done
 	def initial_filtering(self,objects):
 		'''
 			This function filters out some of the objects that cannot be
@@ -68,14 +77,17 @@ class KpackEA:
 			2- the area of the object exceeds the container's area
 		'''
 
-
+		# Total number of objects is the total number of keys in the objects 
+		# dictionary except the first one which is the container.
 		totalNumObjects = len(objects.keys())-1 # -1 is to exclude the container
 
+		# Total weight of the container
 		containerWeight= objects[0].get_item_weight()
 
+		# Total area of the container
 		containerArea= objects[0].get_item_area()
 
-		# Number of deleted objects after the filtering
+		# Number of deleted objects after the filtering for logging purposes
 		numOfDeletedObjects=0
 
 		for k,v in list(objects.items()):
@@ -84,15 +96,16 @@ class KpackEA:
 			if k==0:
 				continue
 
-			# Check for the weight
+			# Check for the weight and area of the item and if it is possible, filter the item
 			if (v.get_item_weight() > containerWeight) or (v.get_item_area() > containerArea):
 				
+				# Deleting that item from the dictionary of items
 				objects.pop(k)
 
 				numOfDeletedObjects+=1
 
 
-		# TODO
+		# TODO better code ?
 		# Updating the key values to adjust starting from 1
 		startingKey=1
 		for k,v in list(objects.items()):
@@ -116,15 +129,36 @@ class KpackEA:
 		return objects
 
 
+
+	'''
+
+		DONE
+
+
+	'''
+
 	def generate_initial_population(self,objects,containerObj,containerObjParams):
 		'''
-			This function generates the initial population for the
-			EA algorithm
+			This function generates the initial population for the EA algorithm. 
+
+			Each population, is a set of solutions. Each solution, is a container
+			with a random selection and placement of items inside it.
+
+
+			Each solution is a list of items as follows:
+				[ e1, e2, e3, e4, e5]
+
+					e1: List of all items inside the container. Each item is represented by a tuple of (Item's Code, Item's Geometric Object, Item's Parameter)
+					e2: Total weight of the items inside the container.
+					e3: Total value of the items inside the container.
+					e4: Remaining area in the container after the placement of the items.
+					e5: Fitness value of the current combination and placement of the items in the container.
 		'''
 		
 		# Initial population
 		initialPopulation=[]
 
+		# Loop in the count of the population size parameter, to create the population
 		for i in range(self.eaParams.populationSize):
 			initialPopulation.append(self.pack_objects(objects,containerObj,containerObjParams))
 
@@ -135,10 +169,10 @@ class KpackEA:
 		return initialPopulation
 
 
-	def pack_objects(self,objects , containerObj , containerObjParams ):
+	def pack_objects(self, objects , containerObj , containerObjParams ):
 		'''
 			This function generates a solution for the packing problem and packs a set of
-			objects to the container
+			objects in to the container.
 		'''
 
 		# Total weight of the container
@@ -147,11 +181,9 @@ class KpackEA:
 		# Total area of the container
 		containerArea=containerObjParams.get_item_area()
 
+		
 		# Total number of objects
 		numberOfObjects=len(objects.keys())-1
-
-		# Calculate number of solutions per item
-		numSolutionsPerItem = self.eaParams.populationSize // numberOfObjects
 
 
 
@@ -166,98 +198,43 @@ class KpackEA:
 		valueOfObjects=0
 
 		# List of objects that are in the container. Elements of 
-		# this list are as (itemCode,Obj)
+		# this list are as (Item's code,Item's geometrical object, Item's parameters)
 		objectsInContainer=[]
 
 
 
-		for i in range(self.eaParams.initPopSetupTries):
+		for i in range(self.eaParams.initSolSetupTries):
 
-			# Check for the early termination:
-			# 1. The container is full
-			# 2. No remaining objects
+			# Check for the early termination of this setup which can be:
+			# 	1. The container is full
+			# 	2. No remaining objects to choose and put inside the container
 
 			if (weightOfObjects==containerWeight) or \
 					( numberOfObjects == len(objectsInContainer) ):
 					break
 
-			# Select an object from the set of objects that are 
-			# not in the container. Note that objectsInContainer is list of tuples, in which, item codes
-			# are the first element of each of the tuples
+			# Select an object from the set of objects that are not in the container. 
+
+			# Note that objectsInContainer is list of tuples, in which, item codes are the
+			# first element of each of the tuples.
 
 
 			# Item code of the new object
 			itemCode= choice([i for i in range(1,numberOfObjects+1) if i not in [e[0] for e in objectsInContainer] ])
 
-			# Parameters of the new object, that is a copy of the actual object's parameters
-			newObjectParams = deepcopy(objects[itemCode])
+			# Parameters of the new object.
+			newObjectParams = (objects[itemCode])
 
-			# Adding the newObject
-			newObjectTuple = self.check_add_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
+			# Try adding the new object to the container
+			newObjectTuple = self.try_adding_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
 
 
-			# shapes=[ sh[1] for sh in objectsInContainer]
-			# shapes.append(containerObj)
 
-			# self.draw(shapes)
-
+			# If addition was successfull, then add the newly created object to the container
+			# as a tuple of (Item's code, Item's geometrical object, Item's geometrical parameter)
 			if newObjectTuple:
 
-			# # Check if this object can be placed in the container due
-			# # to its weight and the weight of the existing objects.
-			# # If so, discard the object and take the next object.
-				# newObjectWeight=objects[itemCode].get_item_weight()
-			# if weightOfObjects + newObjectWeight  > containerWeight:
-			# 	continue
-
-
-			# # First create an shape for the object.
-			# newObject=None
-
-
-			# # Manipulate the selected item so that it satisfies the placement rule
-			# for j in range(self.eaParams.objectSelectionTries):
-
-			# 	# Choose a random placement and a random rotation for the object
-			# 	newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
-			# 	newObjRotation=randint(0,360)
-			# 	objects[itemCode].set_item_center_point(newObjCPX,newObjCPY)
-			# 	objects[itemCode].set_item_rotation_angle(newObjRotation)
-
-
-			# 	if objects[itemCode].get_item_type()=='circle':
-			# 		newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=objects[itemCode].get_item_param().get_radius())
-
-			# 	elif objects[itemCode].get_item_type()=='square':
-			# 		newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-			# 	elif objects[itemCode].get_item_type()=='rti':
-			# 		newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-			# 	# TODO 
-			# 	# elif objects[itemCode].get_item_type()=='ellipse':
-			# 	# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-
-
-
-			# 	# Check if the object ovelaps the continer.
-
-			# 	# If it overlaps, continue and select another position and rotation
-			# 	if self.shapeGeo.check_shape_overlap(containerObj,newObject):
-			# 		continue
-
-			# 	# Check if the object overlaps the objects in the container
-			# 	overlapStatus=0
-			# 	for objTuple in objectsInContainer:
-			# 		if self.shapeGeo.check_shape_overlap(objTuple[1],newObject):
-			# 			overlapStatus=1
-			# 			break
-
-			# 	# If no overlap detected, add the object to the container/
-			# 	# If so, try again with the object.
-			# 	if not overlapStatus:
-					
+		
 				# Adding the object to the container
 				objectsInContainer.append((itemCode,newObjectTuple[0],newObjectTuple[1]))
 
@@ -270,74 +247,52 @@ class KpackEA:
 				# Updating the total value of the objects in the container
 				valueOfObjects += newObjectParams.get_item_value()
 
-					# break
 
 
-		# Return the pack of objects alongside the total weight and total area
-		# of the objects alonside the fitness value as the last element which is -1 at first.
-
+		''' 
+			Return the pack of objects alongside the total weight and total area of the objects 
+			alonside the fitness value as the last element which is -1 at first.
+		'''
 		return  [ objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects , -1 ]
 
 
 
-	def get_best_fitness_of_population(self,population):
+	def try_adding_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams):
 		'''
-			This function returns the best fitness value of the population
-		'''
-		return  max( [sol[4] for sol in population] )
+			This function will try to add a new object to the container. 
 
-
-
-	def get_fittest_solution(self,population):
-
-		'''
-			This function will return the fittest solution(s) in the population
+			If the addition it successfull, it returns the created object, otherwise , it returns None
 		'''
 
-		# First find the maximum value for the fitness parameter in the solutions
+		''' 
+			Check if this object can be placed in the container due to its weight and 
+			the weight constraint on the container. If it possible, Then try to choose random
+			geometrical parameters for it to place it inside the container such that, it does
+			not intersects with the container or any other item inside the container.
 
-		maxVal= max( [sol[4] for sol in population] )
-
-
-		candidates = [ sol for sol in population if sol[4]==maxVal]
-
-
-		# if len(candidates) > 1:
-			
-		# 	# Find the minimum remaining area between these candidates
-
-		# 	minRemainArea=min( [sol[3] for sol in candidates] ) 
-
-		
-		# 	candidates= [ sol for sol in candidates if sol[3]==minRemainArea ]
-
-		return candidates
-
-
-
-	def check_add_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams):
-		'''
-			This function will try to add a new object to the container. If it was successfull, it returns the created object,
-			if not, it returns None
+			It is obvious that it may be impossible to place an item since its geometrical
+			parameters are chosen randomly. So, this process should be controlled by some
+			thresholds of trying.
 		'''
 
-		# Check if this object can be placed in the container due
-		# to its weight and the weight of the existing objects.
-		# If so, discard the object and take the next object.
 		newObjectWeight= newObjParams.get_item_weight()
 
+		# If adding of the new objects causes exceeding the container's weight, then return None
 		if currObjectsWeight + newObjectWeight  > containerObjParams.get_item_weight():
 			return None
 
 
-		# First create an shape for the object.
+
+		# First create an shape for the object
 		newObject=None
 
 
-		# Manipulate the selected item so that it satisfies the placement rule
+		# Manipulate the item so that it satisfies the placement policies
 		for j in range(self.eaParams.objectAdditionTries):
 
 			# Choose a random placement and a random rotation for the object
+
+			# Choosing a random point inside the container as the center point of the object
 			newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
 			newObjRotation=randint(0,360)
 			newObjParams.set_item_center_point(newObjCPX,newObjCPY)
@@ -360,10 +315,12 @@ class KpackEA:
 
 
 
-			# Check if the object ovelaps the continer or not. To check, we can simply check
-			# whether the object is inside the container or not. If yes, it means that they do 
-			# not overlap, otherwise, they overlap.
+			''' 
+				Check if the object ovelaps the continer or not. To check that, we can simply check
+				whether the object is inside the container or not. If yes, it means that it does not
+				overlap with the container.
 
+			'''
 
 			# If it overlaps, continue and select another position and rotation
 			if not self.shapeGeo.check_shape_inside_other(containerObj,newObject):
@@ -371,33 +328,51 @@ class KpackEA:
 
 
 
-			# Check if the object overlaps the objects in the container
+			# Check if the new object overlaps with the objects residing in the container
 			overlapStatus=0
+			
 			for objTuple in objectsInContainer:
+				
 				if self.shapeGeo.check_shape_overlap(objTuple[1],newObject):
 					overlapStatus=1
 					break
 
-			# If no overlap detected, add the object to the container/
-			# If so, try again with the object.
+			# If no overlap detected, return the object with its parameter to the
+			# packaging function. However, if overlap is detected, try again with the another position and rotation.
 			if not overlapStatus:
 
 				return (newObject,newObjParams)
-				# # Adding the object to the container
-				# objectsInContainer.append((itemCode,newObject))
+				
+		
 
-				# # Updating the total weight of the objects in the container
-				# weightOfObjects += newObjectWeight
-
-				# # Updating the total area of the objects in the container
-				# areaOfObjects+= objects[itemCode].get_item_area()
-
-				# # Updating the total value of the objects in the container
-				# valueOfObjects += objects[itemCode].get_item_value()
+		# If the threshold exceeds, return None which indicates that, the algorithm 
+		# cannot place the new object.
 		return None
 
 
+	# Done
+	def get_best_fitness_of_population(self,population):
+		'''
+			This function returns the best fitness value between the solutions of the population
+		'''
+		return  max( [sol[4] for sol in population] )
 
+
+	# Done
+	def get_fittest_solution(self,population):
+
+		'''
+			This function will return the fittest solution(s) in the population
+		'''
+
+		# First find best fitness value between the solutions of the population
+		bestFitness = self.get_best_fitness_of_population(population)
+
+
+		return  [ sol for sol in population if sol[4]==bestFitness]
+
+
+	# DONE
 	def get_random_object(self,objects,itemCodeBlackList):
 
 		'''
@@ -405,7 +380,7 @@ class KpackEA:
 			by the itemCodeBlackList.
 		'''
 
-		# List of all itemCodes
+		# List of all itemCodes except the container object which has the itemCode of 0.
 		itemCodes = [code for code in objects.keys() if code !=0]
 
 
@@ -413,13 +388,11 @@ class KpackEA:
 		if len(itemCodes) == len(itemCodeBlackList):
 			return -1
 
-		# Selecting a random itemCode and filter with itemCodeBlackList
-		randomItemCode= choice([i for i in range(1,len(itemCodes)+1) if i not in itemCodeBlackList ])
+		# Selecting a random itemCode and filter with itemCodeBlackList and return it
+		return choice([ i for i in itemCodes if i not in itemCodeBlackList ])
+		
 
-		return 2
-
-
-
+	# Done
 	def calculate_fitness_value(self,population,objects):
 		'''
 			This function will calculate the fitness value of the solutions of the 
@@ -428,9 +401,6 @@ class KpackEA:
 			The fitness value is a combination of the total value of the objects in
 			the container and the remaining area of the container.
 		'''
-
-		# Container's total area
-		containerArea= objects[0].get_item_area()
 
 
 		# List of solutions' values
@@ -445,7 +415,7 @@ class KpackEA:
 			listOfSolsAreas.append(solution[3])
 
 		''' 
-			Weight vector is defined as follows:
+			Fitnesses of solutions are defined as follows:
 
 				1). Normalizing values in the listOfSolsValues
 				2). Normalizing values in the listOfSolsAreas
@@ -467,8 +437,8 @@ class KpackEA:
 
 		'''	
 
-		# Normalizing values vector. Multiplication constant is 10.
-		listOfSolsValues = [10000*(val+1) for val in listOfSolsValues ]
+		# Normalizing values vector.
+		listOfSolsValues = [ self.eaParams.valueNormConst *(val+1) for val in listOfSolsValues ]
 
 
 		# Normalizing area vector
@@ -476,244 +446,36 @@ class KpackEA:
 
 
 
-		# TODO better coding?
 		# Updating the fitness value of the solutions
-		newFitnesses=[]
+
+		index=0
 		for (value, area) in zip(listOfSolsValues, listOfSolsAreas):
-			newFitnesses.append(value+1/area)
+			population[index][4]=(value+1/area)
+			index+=1
 
-		for i in range(len(population)):
-			population[i][4]=newFitnesses[i]
-
-
-
-
-		# 	''' 
-		# 	Each solution is a list of elements in which:
-		# 	 	First element: List of objects in the container
-		# 	    Second element: Total weight of objects in the container
-		# 		Third element: Total value of objects in the container
-		# 		Forth element: Remaining area in the container
-
-		# 	'''
-
-		# 	# For each solution, we have to calculate the total value of the objects 
-		# 	# in the solution and the remaining area of the container.
-
-		# 	# Total value of the objects in the container
-		# 	totalValueOfObjects=0
-
-		# 	# Total area of the objects in the container
-		# 	totalAreaOfObjects=0
-
-
-		# 	for obj in solution[0]:
-
-		# 		# obj[0] is the object's itemCode
-
-		# 		totalValueOfObjects += objects[obj[0]].get_item_value()
-
-		# 		totalAreaOfObjects += objects[obj[0]].get_item_area()
-
-
-
-		# 	# Updating the solution
-		# 	solution[2] = totalValueOfObjects
-		# 	solution[3] = containerArea - totalAreaOfObjects
-
-			
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		# containerObjParams=objects[0]
-
-		# # Container center point coordinates
-		# containerCpX,containerCpY=containerObjParams.get_item_center_point()
-
-		# # Creating the object of the container based on its parameters
-		# containerObj=None
-
-		# if containerObjParams.get_item_type()=='circle':
-		# 	containerObj=self.shapeGeo.create_circle(centerX=containerCpX,centerY=containerCpY,radius=containerObjParams.get_item_param().get_radius())
-
-		# elif containerObjParams.get_item_type()=='square':
-		# 	containerObj=self.shapeGeo.create_circle(centerX=containerCpX,centerY=containerCpY,side=containerObjParams.get_item_param().get_side(),rotation=containerObjParams.get_item_rotation_angle())
-
-
-
-		# # Initial Population
-		# initialPopultion=[]
-
-		# # Total weight of the container
-		# containerWeight=containerObjParams.get_item_weight()
-
-		# # Total number of objects
-		# numberOfObjects=len(objects.keys())-1
-
-
-		# # Calculate number of solutions per item
-		# numSolutionsPerItem = self.eaParams.populationSize // numberOfObjects
-
-
-		# # 
-		# for itemCode in range(1,numberOfObjects+1):
-
-
-		# 	# First create an shape for the object.
-		# 	newObject=None
-			
-		# 	# Per item solution for the new object
-		# 	newObjectSolCount=0
-
-
-		# 	# Manipulate the selected item so that it satisfies the placement rule
-		# 	for j in range(self.eaParams.objectSelectionTries):
-
-		# 		# Choose a random placement and a random rotation for the object
-		# 		newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
-		# 		newObjRotation=randint(0,360)
-		# 		objects[itemCode].set_item_center_point(newObjCPX,newObjCPY)
-		# 		objects[itemCode].set_item_rotation_angle(newObjRotation)
-
-
-
-		# 		if objects[itemCode].get_item_type()=='circle':
-		# 			newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=objects[itemCode].get_item_param().get_radius())
-
-		# 		elif objects[itemCode].get_item_type()=='square':
-		# 			newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-		# 		elif objects[itemCode].get_item_type()=='rti':
-		# 			newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-		# 		# TODO 
-		# 		# elif objects[itemCode].get_item_type()=='ellipse':
-		# 		# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-		# 		# If it overlaps, continue and select another position and rotation
-		# 		if self.shapeGeo.check_shape_overlap(containerObj,newObject):
-		# 			continue
-
-		# 		# Append the object to the initial population
-		# 		initialPopultion.append((itemCode,newObject))
-
-		# 		# Increment the solution counter for this object
-		# 		newObjectSolCount+=1
-
-		# 		if newObjectSolCount== numSolutionsPerItem:
-		# 			break
-
-
-		# # Check if we have created the adequate population or not.
-
-		# self.logger.log_message("Initial Population Created With {0} Objects".format(len(initialPopultion)),"INF")
-
-
-		# # we have to add more objects to the initial population
-		# if len(initialPopultion) != self.eaParams.populationSize:
-
-		# 	numberOfRemainingItems=self.eaParams.populationSize-len(initialPopultion)
-
-
-		# 	self.logger.log_message("Needing {0} Objects To Fulfill The Population".format(numberOfRemainingItems),"INF")
-
-
-		# 	# for i in range(self.eaParams.populationSize - len(initialPopultion)):
-
-
-
-		# 	for i in range(self.eaParams.initPopSetupTries):
-
-
-		# 		# Select an object from the set of objects that are 
-		# 		# not in the container. Note that objectsInContainer is list of tuples, in which, item codes
-		# 		# are the first element of each of the tuples
-
-		# 		itemCode= choice([i for i in range(1,numberOfObjects+1) ])
-
-				
-		# 		# Manipulate the selected item so that it satisfies the placement rule
-		# 		for j in range(self.eaParams.objectSelectionTries):
-
-					
-		# 			# Choose a random placement and a random rotation for the object
-		# 			newObjCPX,newObjCPY=self.shapeGeo.get_random_point_from_shape(containerObj)
-		# 			newObjRotation=randint(0,360)
-		# 			objects[itemCode].set_item_center_point(newObjCPX,newObjCPY)
-		# 			objects[itemCode].set_item_rotation_angle(newObjRotation)
-
-
-				
-		# 			# First create an shape for the object.
-		# 			newObject=None
-		# 			if objects[itemCode].get_item_type()=='circle':
-		# 				newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=objects[itemCode].get_item_param().get_radius())
-
-		# 			elif objects[itemCode].get_item_type()=='square':
-		# 				newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-		# 			elif objects[itemCode].get_item_type()=='rti':
-		# 				newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-		# 			# TODO 
-		# 			# elif objects[itemCode].get_item_type()=='ellipse':
-		# 			# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=objects[itemCode].get_item_param().get_side(),rotation=newObjRotation)
-
-
-
-
-		# 			# Check if the object ovelaps the continer.
-
-		# 			# If it overlaps, continue and select another position and rotation
-		# 			if self.shapeGeo.check_shape_overlap(containerObj,newObject):
-		# 				continue
-
-					
-
-				
-		# 			# Adding the object to the container
-		# 			initialPopultion.append((itemCode,newObject))
-
-		# 			# Decrement the number of remaining objects 
-		# 			numberOfRemainingItems-=1
-		# 			break
-					
-
-		# 		if numberOfRemainingItems == 0:
-		# 			break
 	
 
-
+	# Done
 	def select_from_population(self,population):
 		'''
-			This function will select solutions from the population
+			This function has implemented the selection portion of the EA algorithm and
+			will select solutions based on their fitness value from the population. At the end
+			it will shuffle the selected solutions.
 		'''
 
 		
 
 		# Weight vector for the selection which is based on the fitness value
-		selectionVector=[]
+		selectionWeightVector=[]
 
 		for solution in population:
-			selectionVector.append(solution[4])
+			selectionWeightVector.append(solution[4])
 
 		
 
 
 		# Now return a selection of the population based on the weight vector.
-		selectedParents = choices(population,weights=selectionVector,k=len(population))
+		selectedParents = choices(population,weights=selectionWeightVector,k=len(population))
 		
 
 
@@ -726,23 +488,22 @@ class KpackEA:
 
 
 
-	def mate_population(self,population,containerObj,containerObjParams,objects):
+	# Done
+	def mate_population(self,containerObj,containerObjParams,objects,population):
 		'''
-			This function will mate the parents of the population, and generates the
-			offsprings
+			This function has implemented the combination portion of the EA algorithm and 
+			will mate the solutions of the population, and generate the possible offsprings
 		'''
 
-		# List of parents that were are mated
+		# List of parents that won't be mated
 		parentsNotMated=[]
 
-		# List of new Offsprings
+		# List of new Offsprings resulted from the mating
 		newOffsprings=[]
 
-		
 
-		# self.shapeGeo.split_shape_with_crossing_line(population[0][0][0][1])
 
-		# exit(0)
+		# Select parents two by two and mate them based on the mating probability
 		for i in range(0,len(population),2):
 
 			# Mating should be performed
@@ -763,19 +524,19 @@ class KpackEA:
 
 
 				# Split the container to two segments
-				containerSegments = self.shapeGeo.split_shape_with_crossing_line(containerObj)
+				containerSegments ,line= self.shapeGeo.split_shape_with_crossing_line(containerObj)
 
 
-				# List of objects that are in parent 1 and are in the first segment 
+				# List of objects that are in parent 1 and are in the first segment of the container
 				parent1ObjectsSeg1 = []
 
-				# List of objects that are in parent 1 and are in the second segment 
+				# List of objects that are in parent 1 and are in the second segment of the container
 				parent1ObjectsSeg2 = []
 
-				# List of objects that are in parent 2 and are in the first segment 
+				# List of objects that are in parent 2 and are in the first segment of the container
 				parent2ObjectsSeg1 = []
 
-				# List of objects that are in parent 1 and are in the second segment 
+				# List of objects that are in parent 1 and are in the second segment of the container
 				parent2ObjectsSeg2 = []
 
 
@@ -795,7 +556,7 @@ class KpackEA:
 					elif containerSegments[1].contains(obj[1]):
 						parent1ObjectsSeg2.append(obj)
 
-					else: #TODO check the correctness
+					else:
 						parent1ObjectsObBoundary.append(obj)
 
 
@@ -807,51 +568,44 @@ class KpackEA:
 					elif containerSegments[1].contains(obj[1]):
 						parent2ObjectsSeg2.append(obj)
 
-					else: #TODO check the correctness
+					else: 
 						parent2ObjectsObBoundary.append(obj)
 
 
 				# Creating the list of objects in the offsprings
 				offspring1=[ *parent1ObjectsSeg1, *parent2ObjectsSeg2 ]
-				offspring2=[ *parent1ObjectsSeg2 , *parent2ObjectsSeg1 ]
+				offspring2=[ *parent2ObjectsSeg1 , *parent1ObjectsSeg2 ]
 
-				# print([ tu[0] for tu in parent1ObjectsSeg1])
-		
-				# print([ tu[0] for tu in parent1ObjectsSeg2])
-				# print([ tu[0] for tu in parent2ObjectsSeg1])
-				# print([ tu[0] for tu in parent2ObjectsSeg2])
+				
 
-				# print([ tu[0] for tu in offspring1])
-				# print([ tu[0] for tu in offspring2])
-				# exit(0)
-
-				# Remove duplicate items in the offspring1
-				shuffle(offspring1)
+				# Removing duplicate items in the offspring1
 				offspring1ItemCodes=[]
 				for tup in offspring1:
+					'''
+						If the item code was previously put in the container, it means, 
+						we have duplicate items. Otherwise, we consider this as a new item in
+						the offspring
+					'''
 					if tup[0] in offspring1ItemCodes:
-						# This is a duplicate and should be deleted
 						offspring1.remove(tup)
-						# print("DELETED 1")
 					else:
 						offspring1ItemCodes.append(tup[0])
 
 				
-				# Remove duplicate items in the offspring2
-				shuffle(offspring2)
-
+				# Removing duplicate items in the offspring2
 				offspring2ItemCodes=[]
 				for tup in offspring2:
+
+					'''
+						If the item code was previously put in the container, it means, 
+						we have duplicate items. Otherwise, we consider this as a new item in
+						the offspring
+					'''
 					if tup[0] in offspring2ItemCodes:
-						# This is a duplicate and should be deleted
 						offspring2.remove(tup)
-						# print("DELETED 2")
 					else:
 						offspring2ItemCodes.append(tup[0])
 
-				# print([ tu[0] for tu in offspring1])
-				# print([ tu[0] for tu in offspring2])
-				# exit(0)
 
 				# Calculate the total values, weight, and area of the objects in each offspring
 				offspring1TotalWeight=0
@@ -874,21 +628,24 @@ class KpackEA:
 					offspring2TotalValue+= tup[2].get_item_value()
 					offspring2TotalArea+= tup[2].get_item_area()
 
-# 	def check_add_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams):
 
 
-				#TODO  objects on the boundary
+				# Deciding what to do with objects on the boundary crossing line
 				for objTuple in parent1ObjectsObBoundary:
 
-					# Try add to the second parent if only it is not in the second parent
-					if not (objTuple[0] in offspring2ItemCodes ) :
+					# Try adding to the second parent if only it is not in the second parent
+					# to avoid having duplicate items in the container
+					if not ( objTuple[0] in offspring2ItemCodes ) :
 
 
-						obj = self.check_add_object_to_container(containerObj,containerObjParams,offspring2TotalWeight,offspring2,objects[objTuple[0]] )
+						obj = self.try_adding_object_to_container(containerObj,containerObjParams,offspring2TotalWeight,offspring2, objTuple[2] )
 
 
-						# If the addition was successful, add the object to the second offspring
+						# If the addition was successful, add the object to the second offspring and
+						# update the total weight, value and the area of the objects in the container of 
+						# the second offspring
 						if obj:	
+							print("boundary was added to second")
 							offspring2.append((objTuple[0],obj[0],obj[1]))
 							offspring2TotalWeight += obj[1].get_item_weight()
 							offspring2TotalValue+=obj[1].get_item_value()
@@ -897,14 +654,18 @@ class KpackEA:
 
 				for objTuple in parent2ObjectsObBoundary:
 
-					# Try add to the first parent if only it is not in the first parent
+					# Try adding to the first parent if only it is not in the first parent
+					# to avoid having duplicate items in the container
 					if not (objTuple[0] in offspring1ItemCodes ) :
 
-						obj = self.check_add_object_to_container(containerObj,containerObjParams,offspring1TotalWeight,offspring1,objects[objTuple[0]] )
+						obj = self.try_adding_object_to_container(containerObj,containerObjParams,offspring1TotalWeight,offspring1, objTuple[2] )
 
 
-						# If the addition was successful, add the object to the second offspring
+						# If the addition was successful, add the object to the first offspring and
+						# update the total weight, value and the area of the objects in the container of 
+						# the first offspring
 						if obj:	
+							print("boundary added to first")
 							offspring1.append((objTuple[0],obj[0],obj[1]))
 
 							offspring1TotalWeight += obj[1].get_item_weight()
@@ -912,17 +673,15 @@ class KpackEA:
 							offspring1TotalArea+=obj[1].get_item_area()
 
 
-				# exit(0)
-
 
 				# We append the new offsprings in the format of:
-				# objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects				
+				# objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects	
 				newOffsprings.append( [offspring1,offspring1TotalWeight ,offspring1TotalValue ,containerObjParams.get_item_area() - offspring1TotalArea,-1] )
 				newOffsprings.append( [offspring2,offspring2TotalWeight,offspring2TotalValue,containerObjParams.get_item_area() - offspring2TotalArea,-1] )
 
 
 			else:
-				# Add the previous parents without any change
+				# Mating will not be performed and the these two parents should be left unchnaged
 				parentsNotMated.append(population[i])
 				parentsNotMated.append(population[i+1])
 
@@ -930,10 +689,11 @@ class KpackEA:
 		return (parentsNotMated,newOffsprings)
 
 
-
+	# Done
 	def perform_mutation(self,containerObj,containerObjParams,objects,newOffsprings):
 		'''
-			This function will perform mutation on the popul
+			This function has imlemented the mutation part of the EA algorithm and
+			will perform mutation on the offsprings created in the solution mating phase.
 		'''
 
 		# List of offsprings after mutation
@@ -951,27 +711,29 @@ class KpackEA:
 
 
 					# First find the itemCode of the objects int the solution which are going
-					# to be filtered in the "add" action.
-					itemsInContainer = [ x[0] for x in offs[0]  ]
+					# to be filtered in the "add" action. We have to care about not adding items
+					# to the solution, that have been added to the container before.
+					itemsInContainer = [ itemTupe[0] for itemTupe in offs[0]  ]
+					
 
-					#TODODODODODODOD
-					itemCode = self.get_random_object(objects,list(set(itemsInContainer)))
+					# Get a random object for the addition
+					itemCode = self.get_random_object(objects,itemsInContainer)
 
-					# If itemcode is not -1, means that we have objects that we can add to the
-					# container.
+					# If itemcode is not -1, it means that we have objects that 
+					# we can add to the container. Otherwise, it means that we have no
+					# object left to add to the container.
 					if itemCode != -1: 
 
 						# Parameters of the new object
-						newObjectParams = deepcopy(objects[itemCode])
+						newObjectParams =  objects[itemCode]
 
-						
 						# Adding the newObject
-						newObject = self.check_add_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
+						newObject= self.try_adding_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
 
-
-				# objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects				
 
 						if newObject:
+							# If addition is possible, add the new object and update the total weight,
+							# value, and area of the objects in the container
 							offs[0].append((itemCode,newObject[0],newObject[1]))
 							offs[1]+=newObjectParams.get_item_weight()
 							offs[2]+=newObjectParams.get_item_value()
@@ -983,7 +745,9 @@ class KpackEA:
 
 				elif action == "remove":
 
+					print("Remove")
 
+					# Only perform deletion on an offspring that has objects inside itself
 					if len(offs[0])!=0:
 
 						# Select a random object to be deleted.
@@ -995,6 +759,8 @@ class KpackEA:
 						# Removing the object from the list
 						offs[0].remove(objectToBeDeleted)
 
+						# Updating the total weight, value, and area of the container
+						# after removing the selected item
 						offs[1]-=selectedObjParams.get_item_weight()
 						offs[2]-=selectedObjParams.get_item_value()
 						offs[3]+=selectedObjParams.get_item_area()
@@ -1002,6 +768,10 @@ class KpackEA:
 						# TODO total weight
 
 				elif action == "modify":
+
+					print("modify")
+
+					# Only perform modification on an offspring that has objects inside itself
 
 					if len(offs[0])!=0:
 
@@ -1018,20 +788,20 @@ class KpackEA:
 						offs[0].remove(objectToBeModified)
 
 
-						# Modify the object and check if can be added to the container or not
-						newObjectTuple = self.check_add_object_to_container(containerObj,containerObjParams, offs[1] - selectedObjParams.get_item_weight() ,offs[0], selectedObjParams )
+						# Modify the object and check if it can be added to the container or not
+						newObjectTuple = self.try_adding_object_to_container(containerObj,containerObjParams, offs[1] - selectedObjParams.get_item_weight() ,offs[0], selectedObjParams )
 
 
 
 						if newObjectTuple:
-								# If the modified object was successful and passed the placements plicies, add the new object
-								# to the container.
+								# If the modified object was successful and passed the placements plicies, 
+								# put it back to the container with new geometrical parameters
 								offs[0].append((selectedObjItemcode,newObjectTuple[0],newObjectTuple[1]))
 
 
 						else:
-							# Object modification did not satisified the placements rules, and 
-							# so it has to be put back.
+							# Object modification did not satisify the placements rules, and 
+							# so it has to be put back without any change to the container.
 							offs[0].append(objectToBeModified)
 
 
@@ -1041,8 +811,8 @@ class KpackEA:
 				offsprings.append(offs)
 
 
-	def draw(self,shapes):
-
+	def draw(self,shapes,line):
+		plt.plot(*line.xy,c='green')
 		for shape in shapes:
 
 			x, y = shape.exterior.xy
