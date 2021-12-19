@@ -63,8 +63,8 @@ class kPack:
 
 		'RTI_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(rti)\s*:\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',
 
+		'ELLIPSE_DEF': '\s*(([1-9][0-9]*)\s*,)?\s*(ellipse)\s*:\s*x\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*y\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*\,\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*'
 
-		# TODO ELLIPSE
 
 		}
 
@@ -90,7 +90,7 @@ class kPack:
 
 		'OBJ_FILE_NO_OBJECTS_SEG_DEF': 'Objects Segment Missing',
 
-		'OBJ_FiLE_OBJECT_DEFINITION_ERR': 'Object Definition Error'
+		'OBJ_FiLE_DEFINITION_ERR': 'Object File Definition Error'
 
 		}
 
@@ -123,7 +123,7 @@ class kPack:
 
 	def read_obj_file(self):
 		'''
-			This function reads the objects file and extract the objects
+			This function reads the objects file and extract the objects defined in it
 		'''
 		fhandle=open(self.objFile)
 		fileLines=fhandle.readlines()
@@ -175,7 +175,7 @@ class kPack:
 
 					# Check for multiple definition of container segment
 					if containerDef:
-						self.logger.log_message(self.logMessages['OBJ_FILE_MULTI_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_MULTI_CONTAINER_SEG_DEF'],'ERR',lineNum)
 						exit(1)
 
 					# Setting the definition status to 1
@@ -188,7 +188,7 @@ class kPack:
 					# Check whether the objects segment has been defined before, and if it has,
 					# does it contain at least one object or not.
 					if objectsDef and (objectsObjCnt==0):
-						self.logger.log_message(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ'],'ERR',lineNum)
 						exit(1)
 
 					continue
@@ -198,7 +198,7 @@ class kPack:
 
 					# Check for multiple definition of objects segment
 					if objectsDef:
-						self.logger.log_message(self.logMessages['OBJ_FILE_MULTI_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_MULTI_OBJECTS_SEG_DEF'],'ERR',lineNum)
 						exit(1)
 
 					# Setting the definition status to 1
@@ -213,7 +213,7 @@ class kPack:
 					# Check whether the objects segment has been defined before, and if it has,
 					# does it contain at least one object or not.
 					if containerDef and (containerObjCnt==0):
-						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ'],'ERR',lineNum)
 						exit(1)
 
 					continue
@@ -279,6 +279,42 @@ class kPack:
 					newItem.set_item_param(newItemParams)
 					newItem.set_item_area()
 
+
+				elif match(self.objFileReg['ELLIPSE_DEF'],line):
+
+					ellipseX = float( search('\s*x\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					ellipseY = float( search('\s*y\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+
+					ellipseValue= float( search('\s*v\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+					ellipseWeight= float( search('\s*w\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
+
+					
+
+					# The portion that declares the object count
+					cntPart= search('\s*(([1-9][0-9]*)\s*,)?\s*(ellipse)\s*',line).group(0)
+						
+					objCount=1
+
+					if ',' in cntPart:
+						objCount= int (cntPart.split(',')[0].strip())
+
+
+					# Create the object 
+					newItem=Item()
+					newItemParams=EllipseParams()
+					newItemParams.set_semi_x(ellipseX)
+					newItemParams.set_semi_y(ellipseY)
+
+
+					newItem.set_item_type('ellipse')
+					newItem.set_item_value(ellipseValue)
+					newItem.set_item_weight(ellipseWeight)
+
+					newItem.set_item_param(newItemParams)
+					newItem.set_item_area()
+
+
+				
 				elif match(self.objFileReg['RTI_DEF'],line):
 
 					rtiSide = float( search('\s*a\s*=\s*([+-]?([0-9]*[.])?[0-9]+)\s*',line).group(0).split("=")[1].strip() )
@@ -310,7 +346,7 @@ class kPack:
 
 
 				else:
-					self.logger.log_message(self.logMessages['OBJ_FiLE_OBJECT_DEFINITION_ERR']+str(lineNum),'ERR')
+					self.logger.log_message(self.logMessages['OBJ_FiLE_DEFINITION_ERR'],'ERR',lineNum)
 					exit(1)
 
 
@@ -321,12 +357,12 @@ class kPack:
 				if currentSegment=='Container':
 
 					if containerObjCnt!=0:
-						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF'],'ERR',lineNum)
 						exit(1)
 
 					# Check for the object count
 					if objCount!=1:
-						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF']+str(lineNum),'ERR')
+						self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_MULTI_OBJECTS_DEF'],'ERR',lineNum)
 						exit(1)
 
 				
@@ -357,19 +393,19 @@ class kPack:
 
 		
 		if 	containerDef==0:
-			self.logger.log_message(self.logMessages['OBJ_FILE_NO_CONTAINER_SEG_DEF']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_NO_CONTAINER_SEG_DEF'],'ERR',lineNum)
 			exit(1)
 
 		if 	objectsDef==0:
-			self.logger.log_message(self.logMessages['OBJ_FILE_NO_OBJECTS_SEG_DEF']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_NO_OBJECTS_SEG_DEF'],'ERR',lineNum)
 			exit(1)
 
 		if containerObjCnt==0:
-			self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_CONTAINER_SEG_NO_OBJ'],'ERR',lineNum)
 			exit(1)
 
 		if objectsObjCnt==0:
-			self.logger.log_message(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ']+str(lineNum),'ERR')
+			self.logger.log_message(self.logMessages['OBJ_FILE_OBJECTS_SEG_NO_OBJ'],'ERR',lineNum)
 			exit(1)
 
 

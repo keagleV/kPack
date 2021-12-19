@@ -46,7 +46,14 @@ class EvolAlgoParams:
 		self.valueNormConst = 10000
 
 
-		# Mutation scaling paramet
+		# Mutation adding item try scaling factor
+		self.mutAddItemScale=2
+
+		# Mutation modifying item try scaling factor
+		self.mutModItemScale=2
+
+		# Try factor for putting items on the boundary in the mating phase
+		self.mateItemBoundaryScale=2
 
 
 
@@ -155,6 +162,9 @@ class KpackEA:
 					e5: Fitness value of the current combination and placement of the items in the container.
 		'''
 		
+		self.logger.log_message("Trying Generating Initial Population With {0} Solutions".format(self.eaParams.populationSize),"INF")
+
+
 		# Initial population
 		initialPopulation=[]
 
@@ -226,7 +236,7 @@ class KpackEA:
 			newObjectParams = (objects[itemCode])
 
 			# Try adding the new object to the container
-			newObjectTuple = self.try_adding_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams )
+			newObjectTuple = self.try_adding_object_to_container(containerObj,containerObjParams,weightOfObjects,objectsInContainer,newObjectParams)
 
 
 
@@ -257,7 +267,7 @@ class KpackEA:
 
 
 
-	def try_adding_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams):
+	def try_adding_object_to_container(self,containerObj,containerObjParams,currObjectsWeight,objectsInContainer,newObjParams,scalingFator=1):
 		'''
 			This function will try to add a new object to the container. 
 
@@ -288,7 +298,7 @@ class KpackEA:
 
 
 		# Manipulate the item so that it satisfies the placement policies
-		for j in range(self.eaParams.objectAdditionTries):
+		for j in range(self.eaParams.objectAdditionTries//scalingFator):
 
 			# Choose a random placement and a random rotation for the object
 
@@ -308,9 +318,8 @@ class KpackEA:
 			elif newObjParams.get_item_type()=='rti':
 				newObject=self.shapeGeo.create_rti(centerX=newObjCPX,centerY=newObjCPY,side=newObjParams.get_item_param().get_side(),rotation=newObjRotation)
 
-			# TODO 
-			# elif objects[itemCode].get_item_type()=='ellipse':
-			# 	newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,side=newObjParams.get_item_param().get_side(),rotation=newObjRotation)
+			elif newObjParams.get_item_type()=='ellipse':
+				newObject=self.shapeGeo.create_ellipse(centerX=newObjCPX,centerY=newObjCPY,semiAxisX=newObjParams.get_item_param().get_semi_x(),semiAxisY=newObjParams.get_item_param().get_semi_y(),rotation=newObjRotation)
 
 
 
@@ -385,11 +394,12 @@ class KpackEA:
 
 
 		# Check if any other object is left or not. If not, return -1
-		if len(itemCodes) == len(itemCodeBlackList):
+		if len(itemCodes) == len(list(set(itemCodeBlackList))):
 			return -1
 
 		# Selecting a random itemCode and filter with itemCodeBlackList and return it
-		return choice([ i for i in itemCodes if i not in itemCodeBlackList ])
+	
+		return choice([ i for i in itemCodes if i not in list(set(itemCodeBlackList)) ])
 		
 
 	# Done
@@ -638,7 +648,7 @@ class KpackEA:
 					if not ( objTuple[0] in offspring2ItemCodes ) :
 
 
-						obj = self.try_adding_object_to_container(containerObj,containerObjParams,offspring2TotalWeight,offspring2, objTuple[2] )
+						obj = self.try_adding_object_to_container(containerObj,containerObjParams,offspring2TotalWeight,offspring2, objTuple[2] ,self.eaParams.mateItemBoundaryScale )
 
 
 						# If the addition was successful, add the object to the second offspring and
@@ -658,7 +668,7 @@ class KpackEA:
 					# to avoid having duplicate items in the container
 					if not (objTuple[0] in offspring1ItemCodes ) :
 
-						obj = self.try_adding_object_to_container(containerObj,containerObjParams,offspring1TotalWeight,offspring1, objTuple[2] )
+						obj = self.try_adding_object_to_container(containerObj,containerObjParams,offspring1TotalWeight,offspring1, objTuple[2] ,self.eaParams.mateItemBoundaryScale )
 
 
 						# If the addition was successful, add the object to the first offspring and
@@ -728,7 +738,7 @@ class KpackEA:
 						newObjectParams =  objects[itemCode]
 
 						# Adding the newObject
-						newObject= self.try_adding_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams )
+						newObject= self.try_adding_object_to_container(containerObj,containerObjParams,offs[1],offs[0], newObjectParams, self.eaParams.mutAddItemScale )
 
 
 						if newObject:
@@ -789,7 +799,7 @@ class KpackEA:
 
 
 						# Modify the object and check if it can be added to the container or not
-						newObjectTuple = self.try_adding_object_to_container(containerObj,containerObjParams, offs[1] - selectedObjParams.get_item_weight() ,offs[0], selectedObjParams )
+						newObjectTuple = self.try_adding_object_to_container(containerObj,containerObjParams, offs[1] - selectedObjParams.get_item_weight() ,offs[0], selectedObjParams,self.eaParams.mutModItemScale )
 
 
 

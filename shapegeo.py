@@ -10,47 +10,11 @@ from math import tan
 
 
 
-# class ShapeParameters:
-# 	'''
-# 		This class has implemented the shape's parameters in the case of this project
-# 	'''
-# 	def __init__(self,centerX,centerY,radius,side):
-# 		self.centerY=centerY
-# 		self.centerX=centerX
-# 		self.radius=radius
-# 		self.side=side
-
-
-
-
-
 class ShapeGeo:
 	'''
 		This class has implemented the necessary functionalities required
 		to draw shapes and manipulate them.
 	'''
-
-
-
-	# def create_object(self,objectType, objectParameters):
-	# 	'''
-	# 		This function will create an object based on the given parameters
-	# 		and returns the objects.
-	# 	'''
-
-	# 	if objectType == 'circle':
-	# 		pass
-
-	# 	elif objectType == 'square':
-	# 		pass
-
-	# 	elif objectType == 'rti':
-	# 		pass
-
-	# 	elif objectType == 'ellipse':
-	# 		pass
-
-
 
 
 	def create_circle(self,centerX=0,centerY=0,radius=1):

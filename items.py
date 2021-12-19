@@ -255,3 +255,59 @@ class RtiParams:
 
 
 
+
+	
+class EllipseParams:
+
+	'''
+		This class implements the ellipse's parameters class
+	'''
+	def __init__(self):
+
+		# ellipse semi-x axis
+		self.semiX=int()
+
+		# ellipse semi-y axis
+		self.semiY=int()
+
+
+	def set_semi_x(self,semiX):
+		'''
+			This function sets the semi-x axis of the ellipse
+		'''
+		self.semiX=semiX
+
+
+	def set_semi_y(self,semiY):
+		'''
+			This function sets the semi-y axis of the ellipse
+		'''
+		self.semiY=semiY
+
+
+
+	def get_semi_x(self):
+		'''
+			This function returns the semi-x axis of the ellipse
+		'''
+		return self.semiX
+
+
+	def get_semi_y(self):
+		'''
+			This function returns the semi-y axis of the ellipse
+		'''
+		return self.semiY
+
+
+
+	def get_area(self):
+		'''
+			This function returns the area of the object based on its 
+			parameters
+		'''
+		return pi * self.semiX * self.semiY
+
+
+
+

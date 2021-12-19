@@ -1,18 +1,26 @@
 
-   # Hello
+# This object file defines the set of objects that are used
+# to define the container(s) and the item(s) that are going 
+# to be added to the container(s).
 
 
+# Define container(s)
 
 container:
+    
+    # One container which is a square
+    square: a= 20 , v=12 ,w=40
 
 
-
-circle: r= 20 , v=12 ,w=40
+# Define Item(s)
 
 
 objects:
+    
 
-7,circle: r= 3.9 , v=8 ,w=7
+    #3,square: a=6,v=2,w=3
 
-3,rti: a= 3.9 , v=4 ,w=4
+    7,ellipse: x= 3, y=2 , v=8 ,w=0
+
+    #6,rti: a= 3.9 , v=4 ,w=4
 
