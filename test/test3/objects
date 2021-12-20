@@ -1,0 +1,34 @@
+
+# This object file defines the set of objects that are used
+# to define the container(s) and the item(s) that are going 
+# to be added to the container(s).
+
+
+# Define container(s)
+
+container:
+    
+    # One container which is a square
+    square: a=10 , v=12 ,w=32
+
+
+# Define Item(s)
+
+
+objects:
+    
+
+
+    ellipse: rx= 3, ry=0.3 , v=5 ,w=5
+
+    ellipse: rx= 1.5 , ry=0.3 , v=5 ,w=5
+
+    ellipse: rx= 3, ry=0.3 , v=5 ,w=10
+
+    ellipse: rx= 1.5 , ry=0.3 , v=5 ,w=10
+
+
+    rti: a= 6 , v=10 , w=10
+
+    rti: a= 6 , v=20 , w=10
+

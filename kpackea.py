@@ -22,10 +22,10 @@ class EvolAlgoParams:
 		self.populationSize=50
 
 		# Number of tries to select an object
-		self.objectAdditionTries=50
+		self.objectAdditionTries=1000
 
 		# Number of tries to set up a solution
-		self.initSolSetupTries=100
+		self.initSolSetupTries=10
 
 		# Mating probability
 		self.mateProb=0.7
@@ -34,17 +34,16 @@ class EvolAlgoParams:
 		self.mutProb=0.9
 
 		# Mutation add action probability
-		self.mutAddProb=0.9
+		self.mutAddProb=0.8
 
 		# Mutation remove action probability
 		self.mutRemovProb=0.05
 
 		# Mutation modify action probability
-		self.mutModProb= 0.05
+		self.mutModProb= 0.15
 
 		# Normalizing constant for the total values of solutions
-		self.valueNormConst = 10000
-
+		self.valueNormConst = 1000
 
 		# Mutation adding item try scaling factor
 		self.mutAddItemScale=2
@@ -313,6 +312,7 @@ class KpackEA:
 				newObject=self.shapeGeo.create_circle(centerX=newObjCPX,centerY=newObjCPY,radius=newObjParams.get_item_param().get_radius())
 
 			elif newObjParams.get_item_type()=='square':
+
 				newObject=self.shapeGeo.create_square(centerX=newObjCPX,centerY=newObjCPY,side=newObjParams.get_item_param().get_side(),rotation=newObjRotation)
 
 			elif newObjParams.get_item_type()=='rti':
@@ -349,7 +349,6 @@ class KpackEA:
 			# If no overlap detected, return the object with its parameter to the
 			# packaging function. However, if overlap is detected, try again with the another position and rotation.
 			if not overlapStatus:
-
 				return (newObject,newObjParams)
 				
 		
@@ -655,7 +654,6 @@ class KpackEA:
 						# update the total weight, value and the area of the objects in the container of 
 						# the second offspring
 						if obj:	
-							print("boundary was added to second")
 							offspring2.append((objTuple[0],obj[0],obj[1]))
 							offspring2TotalWeight += obj[1].get_item_weight()
 							offspring2TotalValue+=obj[1].get_item_value()
@@ -675,14 +673,13 @@ class KpackEA:
 						# update the total weight, value and the area of the objects in the container of 
 						# the first offspring
 						if obj:	
-							print("boundary added to first")
 							offspring1.append((objTuple[0],obj[0],obj[1]))
 
 							offspring1TotalWeight += obj[1].get_item_weight()
 							offspring1TotalValue+=obj[1].get_item_value()
 							offspring1TotalArea+=obj[1].get_item_area()
 
-
+				
 
 				# We append the new offsprings in the format of:
 				# objectsInContainer , weightOfObjects, valueOfObjects , containerArea - areaOfObjects	
@@ -725,7 +722,6 @@ class KpackEA:
 					# to the solution, that have been added to the container before.
 					itemsInContainer = [ itemTupe[0] for itemTupe in offs[0]  ]
 					
-
 					# Get a random object for the addition
 					itemCode = self.get_random_object(objects,itemsInContainer)
 
@@ -755,8 +751,6 @@ class KpackEA:
 
 				elif action == "remove":
 
-					print("Remove")
-
 					# Only perform deletion on an offspring that has objects inside itself
 					if len(offs[0])!=0:
 
@@ -779,7 +773,6 @@ class KpackEA:
 
 				elif action == "modify":
 
-					print("modify")
 
 					# Only perform modification on an offspring that has objects inside itself
 

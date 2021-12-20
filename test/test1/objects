@@ -1,0 +1,47 @@
+
+# This object file defines the set of objects that are used
+# to define the container(s) and the item(s) that are going 
+# to be added to the container(s).
+
+
+# Define container(s)
+
+container:
+    
+    # One container which is a square
+    circle: r= 13 , v=12 ,w= 10000000
+
+
+# Define Item(s)
+
+
+objects:
+    
+
+    1000,circle: r=3.9 , v=1 , w=0
+
+
+
+
+
+
+
+
+
+
+
+    #square: a=4.5 ,v=50 , w=40
+
+    #7,ellipse: rx= 3, ry=2 , v=8 ,w=0
+
+    #6,rti: a= 3.9 , v=4 , w=4
+
+
+
+ 
+    #circle: r=0.45 ,v=5,w=20
+
+    #circle: r=0.45 ,v=10,w=20
+    #circle: r=0.45 ,v=15,w=20
+    #circle: r=0.45 ,v=20,w=20
+    
