@@ -8,8 +8,6 @@ from random import uniform
 from random import choice
 from math import tan
 
-import matplotlib.pyplot as plt
-
 
 class ShapeGeo:
 	'''
