@@ -4,9 +4,6 @@ from random import choice
 from random import randint
 from random import shuffle
 from random import uniform
-from copy import deepcopy
-from collections import namedtuple
-
 
 
 class EvolAlgoParams:
