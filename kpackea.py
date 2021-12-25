@@ -7,7 +7,6 @@ from random import uniform
 from copy import deepcopy
 from collections import namedtuple
 
-import matplotlib.pyplot as plt
 
 
 class EvolAlgoParams:
@@ -812,14 +811,3 @@ class KpackEA:
 
 			else:
 				offsprings.append(offs)
-
-
-	def draw(self,shapes,line):
-		plt.plot(*line.xy,c='green')
-		for shape in shapes:
-
-			x, y = shape.exterior.xy
-
-			plt.plot(x,y,c="black")
-
-		plt.show()
