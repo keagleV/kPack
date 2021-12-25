@@ -28,6 +28,17 @@ To install simply
 git clone https://github.com/keagleV/kPack.git
 ```
 
+```
+cd ./kPack
+```
+
+```
+cd ./Release 
+```
+```
+pip3 install kPack-1.0-py3-none-any.whl
+```
+
 
 
 
